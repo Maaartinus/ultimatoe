@@ -8,13 +8,15 @@ import lombok.NonNull;
 
 import com.google.common.math.IntMath;
 
+import maaartin.game.GamePlayer;
+
 @Immutable public final class UltimatoeBoard {
 	private UltimatoeBoard(int data) {
 		this.data = data;
 		winner = computeWinner(data);
 		int possibilities = 0;
 		if (winner.isNone()) {
-			for (final UltimatoePlayer player : UltimatoePlayer.values()) {
+			for (final GamePlayer<Ultimatoe> player : UltimatoeUtils.PLAYERS) {
 				if (player.isNone()) continue;
 				for (int i=0; i<9; ++i) {
 					if (!getPlayer(data, i).isNone()) continue;
@@ -45,11 +47,11 @@ import com.google.common.math.IntMath;
 
 	private static UltimatoePlayer getPlayer(int data, int index) {
 		final int x = (data >> (2*index)) & 3;
-		return UltimatoePlayer.values()[x];
+		return x==1 ? UltimatoePlayer.O : x==2 ? UltimatoePlayer.X : UltimatoePlayer.NONE;
 	}
 
-	private static int childData(int data, int index, UltimatoePlayer player) {
-		return data + (player.ordinal() << (2*index));
+	private static int childData(int data, int index, GamePlayer<Ultimatoe> player) {
+		return data + ((player.ordinal() + 1) << (2*index));
 	}
 
 	@Override public boolean equals(Object obj) {//TODO
@@ -71,7 +73,7 @@ import com.google.common.math.IntMath;
 		return result.toString();
 	}
 
-	@Nullable UltimatoeBoard play(int index, UltimatoePlayer player) {
+	@Nullable UltimatoeBoard play(int index, GamePlayer<Ultimatoe> player) {
 		return children[childIndex(index, player)];
 	}
 
@@ -79,12 +81,16 @@ import com.google.common.math.IntMath;
 		return getPlayer(data, index);
 	}
 
+	boolean isPlayable(int index) {
+		return (possibilities & (1<<index)) != 0;
+	}
+
 	boolean isFinished() {
 		return possibilities == 0;
 	}
 
-	private int childIndex(int index, UltimatoePlayer player) {
-		return 2*index + player.ordinal() - 1;
+	private int childIndex(int index, GamePlayer<Ultimatoe> player) {
+		return 2*index + player.ordinal();
 	}
 
 	static final int[][] WINNING_SETS = {

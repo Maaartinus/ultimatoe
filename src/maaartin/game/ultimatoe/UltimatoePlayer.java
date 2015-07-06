@@ -3,10 +3,13 @@ package maaartin.game.ultimatoe;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor public enum UltimatoePlayer {
-	NONE('.'), O('O'), X('X');
+import maaartin.game.GamePlayer;
 
-	boolean isNone() {
+//@Deprecated//TODO
+@RequiredArgsConstructor public enum UltimatoePlayer implements GamePlayer<Ultimatoe> {
+	O('O'), X('X'), NONE('.');
+
+	@Override public boolean isNone() {
 		return this == NONE;
 	}
 
