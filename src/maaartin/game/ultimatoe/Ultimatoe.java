@@ -49,7 +49,7 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 		}
 
 		private char computeChar(Ultimatoe game, int majorIndex, UltimatoePlayer player) {
-			if (!player.isNone()) return player.toChar();
+			if (!player.isDummy()) return player.toChar();
 			return game.isPlayable(majorIndex) ? UltimatoeUtils.PLAYABLE : UltimatoeUtils.NON_PLAYABLE;
 		}
 
@@ -57,6 +57,10 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 	}
 
 	@Override public String toString() {
+		return asString();
+	}
+
+	@Override public String asString() {
 		return new ToStringHelper(this).toString;
 	}
 
@@ -145,7 +149,7 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 	}
 
 	private static int computeMovesBitmask(int lastMinorIndex, UltimatoeBoard[] boards, UltimatoePlayer winner) {
-		if (!winner.isNone()) return 0;
+		if (!winner.isDummy()) return 0;
 		if (!boards[lastMinorIndex].isFinished()) return 1 << lastMinorIndex;
 		int result = 0;
 		for (int i=0; i<9; ++i) {
@@ -157,7 +161,7 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 	private static final UltimatoePlayer computeWinner(UltimatoeBoard[] boards) {
 		for (final int[] winningSet : UltimatoeBoard.WINNING_SETS) {
 			final UltimatoePlayer player = boards[winningSet[0]].winner();
-			if (player.isNone()) continue;
+			if (player.isDummy()) continue;
 			if (player != boards[winningSet[1]].winner()) continue;
 			if (player != boards[winningSet[2]].winner()) continue;
 			return player;
@@ -173,7 +177,7 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 		return UltimatoeUtils.PLAYERS.get(turn & 1);
 	}
 
-	boolean isPlayable(int majorIndex) {
+	private boolean isPlayable(int majorIndex) {
 		return ((possibilities>>majorIndex) & 1) != 0;
 	}
 
@@ -186,6 +190,6 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 
 	@Getter private final int turn;
 	private final int possibilities;
-	@NonNull private final UltimatoePlayer winner; //TODO
+	@Getter @NonNull private final UltimatoePlayer winner;
 	private final UltimatoeBoard[] boards;
 }

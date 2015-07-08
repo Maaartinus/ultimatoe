@@ -9,7 +9,7 @@ import com.google.common.collect.ImmutableList;
 import maaartin.game.GamePlayer;
 
 @UtilityClass public final class UltimatoeUtils {
-	static String indexesToMoveString(int majorIndex, int minorIndex) {//TODO
+	static String indexesToMoveString(int majorIndex, int minorIndex) {
 		checkArgument(0<=minorIndex && minorIndex<9);
 		checkArgument(0<=majorIndex && majorIndex<9);
 		final int x = 3 * (majorIndex%3) + (minorIndex%3);

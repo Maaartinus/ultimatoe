@@ -10,6 +10,7 @@ import java.awt.event.ActionListener;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import javax.annotation.Nullable;
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -19,7 +20,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.Timer;
 
-import com.google.common.base.Strings;
+import lombok.NonNull;
+
 import com.google.common.collect.Lists;
 
 import maaartin.game.GameActor;
@@ -27,13 +29,15 @@ import maaartin.game.GameListener;
 import maaartin.game.ai.GameMonteCarloActor;
 import maaartin.game.ai.GameRandomActor;
 
+/** The GUI for the {@link Ultimatoe} game. */
 public final class UltimatoeGui implements GameListener<Ultimatoe> {
-	private final class MyListener implements ActionListener {
+	private final class FieldListener implements ActionListener {
 		@Override public void actionPerformed(ActionEvent e) {
-			if (swingWorker!=null) return;
+			if (swingWorker!=null) return; // It's a AI turn.
 			final int guiIndex = buttons.indexOf(e.getSource());
-			final int guiX = guiIndex % 11;
-			final int guiY = guiIndex / 11;
+			final int guiX = guiIndex % N_OF_GUI_FIELDS;
+			final int guiY = guiIndex / N_OF_GUI_FIELDS;
+			// Convert the gui coordinates to game cooredinates in range 0..8.
 			final int x = guiX - guiX/4;
 			final int y = guiY - guiY/4;
 			final String move = UltimatoeUtils.coordinatesToMoveString(x, y);
@@ -41,7 +45,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		}
 	}
 
-	private final class MyButton extends JButton {
+	private final class FieldButton extends JButton {
 		@Override protected void paintComponent(Graphics g) {
 			super.paintComponent(g);
 			final String text = getText();
@@ -54,27 +58,29 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 	private UltimatoeGui() {
 		final JButton fasterButton = new JButton(new AbstractAction("faster") {
 			@Override public void actionPerformed(ActionEvent e) {
-				delayMillis *= 0.75;
+				autoplayDelayMillis /= SPEEDUP_FACTOR;
 			}
 		});
 
 		final ActionListener autoListener = new ActionListener() {
+			/** Switch the AI for a player on or off. */
 			@Override public void actionPerformed(ActionEvent e) {
 				final JToggleButton b = (JToggleButton) e.getSource();
 				final boolean isOn = b.getModel().isSelected();
 				final boolean isX = b.getText().endsWith("X");
 				if (isX) {
-					actors[1] = isOn ? new GameMonteCarloActor<>(EMPTY_STATE) : null;
+					actors[1] = isOn ? new GameMonteCarloActor<>(INITIAL_GAME) : null;
 				} else {
-					actors[0] = isOn ? new GameRandomActor<>(EMPTY_STATE) : null;
+					actors[0] = isOn ? new GameRandomActor<>(INITIAL_GAME) : null;
 				}
 
 				final boolean isFullAuto = actors[0]!=null && actors[1]!=null;
 				fasterButton.setEnabled(isFullAuto);
-				delayMillis = MAX_DELAY_MILLIS;
+				autoplayDelayMillis = MAX_AUTOPLAY_DELAY_MILLIS;
 				autoplay();
 			}
 		};
+
 		for (final String s : "auto-X auto-O".split(" ")) {
 			final JToggleButton autoButton = new JToggleButton(s);
 			autoButton.addActionListener(autoListener);
@@ -84,9 +90,9 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		fasterButton.setEnabled(false);
 		controlPanel.add(fasterButton);
 
-		mainPanel.setLayout(new GridLayout(11, 11));
-		for (int i=0; i<11*11; ++i) {
-			final MyButton button = new MyButton();
+		mainPanel.setLayout(new GridLayout(N_OF_GUI_FIELDS, N_OF_GUI_FIELDS));
+		for (int i=0; i<N_OF_GUI_FIELDS*N_OF_GUI_FIELDS; ++i) {
+			final FieldButton button = new FieldButton();
 			button.setPreferredSize(BUTTON_SIZE);
 			button.addActionListener(listener);
 			buttons.add(button);
@@ -98,7 +104,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		frame.pack();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		setState(EMPTY_STATE);
+		setState(INITIAL_GAME);
 		frame.setVisible(true);
 		timer.start();
 	}
@@ -107,6 +113,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		new UltimatoeGui();
 	}
 
+	/** Store the new state of the game and display it. */
 	@Override public void setState(final Ultimatoe game) {
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override public void run() {
@@ -117,11 +124,11 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 	}
 
 	private void setStateInternal(Ultimatoe game) {
-		final String newString = game.toString().replace("\n", "");
-		final String oldString = this.game==null ? Strings.repeat("?", newString.length()) : this.game.toString().replace("\n", "");
+		final String newString = game.asString().replace("\n", "");
+		final String oldString = this.game==null ? null : this.game.toString().replace("\n", "");
 		for (int i=0; i<buttons.size(); ++i) {
 			final char c = newString.charAt(i);
-			if (c == oldString.charAt(i)) continue;
+			if (oldString != null && c == oldString.charAt(i)) continue;
 			final JButton b = buttons.get(i);
 			b.setForeground(Color.BLACK);
 			b.setText("" + c);
@@ -151,6 +158,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		autoplayFinish();
 	}
 
+	/** Start the AI if needed. */
 	private void autoplayInit() {
 		if (swingWorker!=null) return;
 		final GameActor<Ultimatoe> actor = actors[game.playerOnTurn().ordinal()];
@@ -159,10 +167,11 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		swingWorker.execute();
 	}
 
+	/** Apply the move generated by AI if any. */
 	private void autoplayFinish() {
 		if (swingWorker==null) return;
 		if (!swingWorker.isDone()) return;
-		if (System.currentTimeMillis() < lastAutoplayMillis + delayMillis) return;
+		if (System.currentTimeMillis() < lastAutoplayMillis + autoplayDelayMillis) return;
 		lastAutoplayMillis = System.currentTimeMillis();
 		try {
 			final String move = swingWorker.get();
@@ -182,15 +191,17 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		};
 	}
 
+	private static final int N_OF_GUI_FIELDS = 11;
 	private static final Dimension BUTTON_SIZE = new Dimension(50, 50);
-	private static final int MAX_DELAY_MILLIS = 2000;
+	private static final int MAX_AUTOPLAY_DELAY_MILLIS = 2000;
+	private static final double SPEEDUP_FACTOR = 1.2;
 
-	private static final Ultimatoe EMPTY_STATE = Ultimatoe.INITIAL_GAME;
+	private static final Ultimatoe INITIAL_GAME = Ultimatoe.INITIAL_GAME;
 
 	private final JFrame frame = new JFrame();
 	private final JPanel controlPanel = new JPanel();
 	private final JPanel mainPanel = new JPanel();
-	private final MyListener listener = new MyListener();
+	private final FieldListener listener = new FieldListener();
 	private final List<JButton> buttons = Lists.newArrayList();
 
 	private final Timer timer = new Timer(10, new ActionListener() {
@@ -199,11 +210,13 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		}
 	});
 	private long lastAutoplayMillis;
-	private long delayMillis;
+	private long autoplayDelayMillis;
 
-	private Ultimatoe game;
+	@NonNull private Ultimatoe game;
 
-	private SwingWorker<String, Void> swingWorker;
+	/** The worker currently running the AI computing the move, or null. */
+	@Nullable private SwingWorker<String, Void> swingWorker;
+
 	@SuppressWarnings("unchecked")
 	private final GameActor<Ultimatoe>[] actors = (GameActor<Ultimatoe>[]) new GameActor<?>[2];
 }

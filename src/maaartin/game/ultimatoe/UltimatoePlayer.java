@@ -5,11 +5,10 @@ import lombok.RequiredArgsConstructor;
 
 import maaartin.game.GamePlayer;
 
-//@Deprecated//TODO
 @RequiredArgsConstructor public enum UltimatoePlayer implements GamePlayer<Ultimatoe> {
-	O('O'), X('X'), NONE('.');
+	O('O'), X('X'), NONE(' ');
 
-	@Override public boolean isNone() {
+	@Override public boolean isDummy() {
 		return this == NONE;
 	}
 

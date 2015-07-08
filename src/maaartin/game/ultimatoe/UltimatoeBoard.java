@@ -3,6 +3,7 @@ package maaartin.game.ultimatoe;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -10,16 +11,16 @@ import com.google.common.math.IntMath;
 
 import maaartin.game.GamePlayer;
 
-@Immutable public final class UltimatoeBoard {
+@Immutable @EqualsAndHashCode(of="data") public final class UltimatoeBoard {
 	private UltimatoeBoard(int data) {
 		this.data = data;
 		winner = computeWinner(data);
 		int possibilities = 0;
-		if (winner.isNone()) {
+		if (winner.isDummy()) {
 			for (final GamePlayer<Ultimatoe> player : UltimatoeUtils.PLAYERS) {
-				if (player.isNone()) continue;
+				if (player.isDummy()) continue;
 				for (int i=0; i<9; ++i) {
-					if (!getPlayer(data, i).isNone()) continue;
+					if (!getPlayer(data, i).isDummy()) continue;
 					final int childData = childData(data, i, player);
 					children[childIndex(i, player)] = getBoard(childData);
 					possibilities |= 1 << i;
@@ -37,7 +38,7 @@ import maaartin.game.GamePlayer;
 	private static UltimatoePlayer computeWinner(int data) {
 		for (final int[] winningSet : WINNING_SETS) {
 			final UltimatoePlayer player = getPlayer(data, winningSet[0]);
-			if (player.isNone()) continue;
+			if (player.isDummy()) continue;
 			if (player != getPlayer(data, winningSet[1])) continue;
 			if (player != getPlayer(data, winningSet[2])) continue;
 			return player;
@@ -52,16 +53,6 @@ import maaartin.game.GamePlayer;
 
 	private static int childData(int data, int index, GamePlayer<Ultimatoe> player) {
 		return data + ((player.ordinal() + 1) << (2*index));
-	}
-
-	@Override public boolean equals(Object obj) {//TODO
-		if (!(obj instanceof UltimatoeBoard)) return false;
-		final UltimatoeBoard that = (UltimatoeBoard) obj;
-		return this.data == that.data;
-	}
-
-	@Override public int hashCode() {
-		return data;
 	}
 
 	@Override public String toString() {
