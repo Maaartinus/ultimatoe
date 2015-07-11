@@ -7,3 +7,6 @@ While I stick mostly with Java conventions, I differ in the following points:
 - Left out spaces between *innermost* operators and simple expressions like `a*b + c*d` (but not `a*b+c*d` and *definitely not* `a * b+c * d`).
 
 *I wouldn't do it if it wasn't much more readable for me.*
+
+Fields get placed at the bottom rather than somewhere in the middle (i.e., between inner classes and constructors).
+*Again, I wouldn't do it if it wouldn't make them easier to find.*

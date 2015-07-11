@@ -1,10 +1,13 @@
 package maaartin.game.ultimatoe;
 
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridLayout;
+import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
@@ -45,14 +48,48 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		}
 	}
 
-	private final class FieldButton extends JButton {
-		@Override protected void paintComponent(Graphics g) {
-			super.paintComponent(g);
-			final String text = getText();
-			if (text.isEmpty() || text.charAt(0) != UltimatoeUtils.BORDER) return;
-			setForeground(new Color(0x20FFC0C0, true));
-			g.fillRect(0, 0, getWidth(), getHeight());
+	private static final class FieldButton extends JButton {
+		@Override protected void paintComponent(Graphics g1) {
+			if (isEnabled()) {
+				super.paintComponent(g1);
+				return;
+			}
+			final Graphics2D g = (Graphics2D) g1.create();
+			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			final int w = getWidth();
+			final int h = getHeight();
+			g.setColor(EMPTY_COLOR);
+			g.fillRect(0, 0, w, h);
+			g.setStroke(new BasicStroke(isRecent ? 3 : 2));
+			switch (getText().charAt(0)) {
+				case 'O':
+					g.setColor(O_COLOR);
+					g.drawOval(3, 3, w-7, h-7);
+					break;
+				case 'X':
+					g.setColor(X_COLOR);
+					g.drawLine(3, 3, w-3, w-3);
+					g.drawLine(3, h-3, w-3, 3);
+					break;
+				case UltimatoeUtils.BORDER:
+					g.setColor(BORDER_COLOR);
+					g.fillRect(0, 0, getWidth(), getHeight());
+					break;
+			}
 		}
+
+		void setIsRecent(boolean isRecent) {
+			if (this.isRecent == isRecent) return;
+			this.isRecent = isRecent;
+			repaint();
+		}
+
+		private static final Color X_COLOR = new Color(200, 0, 0);
+		private static final Color O_COLOR = new Color(0, 200, 0);
+		private static final Color EMPTY_COLOR = new Color(200, 200, 220);
+		private static final Color BORDER_COLOR = new Color(200, 200, 200);
+
+		private boolean isRecent;
 	}
 
 	private UltimatoeGui() {
@@ -67,11 +104,11 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 			@Override public void actionPerformed(ActionEvent e) {
 				final JToggleButton b = (JToggleButton) e.getSource();
 				final boolean isOn = b.getModel().isSelected();
-				final boolean isX = b.getText().endsWith("X");
-				if (isX) {
-					actors[1] = isOn ? new GameMonteCarloActor<>(INITIAL_GAME) : null;
+				final boolean isO = b.getText().endsWith("O");
+				if (isO) {
+					actors[1] = isOn ? new GameRandomActor<>(INITIAL_GAME) : null;
 				} else {
-					actors[0] = isOn ? new GameRandomActor<>(INITIAL_GAME) : null;
+					actors[0] = isOn ? new GameMonteCarloActor<>(INITIAL_GAME) : null;
 				}
 
 				final boolean isFullAuto = actors[0]!=null && actors[1]!=null;
@@ -104,9 +141,11 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		frame.pack();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		setState(INITIAL_GAME);
+		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
 		timer.start();
+
+		setState(INITIAL_GAME);
 	}
 
 	public static void main(String[] args) {
@@ -125,15 +164,15 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 
 	private void setStateInternal(Ultimatoe game) {
 		final String newString = game.asString().replace("\n", "");
-		final String oldString = this.game==null ? null : this.game.toString().replace("\n", "");
+		final String oldString = this.game==null ? null : this.game.asString().replace("\n", "");
 		for (int i=0; i<buttons.size(); ++i) {
 			final char c = newString.charAt(i);
-			if (oldString != null && c == oldString.charAt(i)) continue;
-			final JButton b = buttons.get(i);
-			b.setForeground(Color.BLACK);
+			final char c0 = oldString==null ? c : oldString.charAt(i);
+			final FieldButton b = buttons.get(i);
+			final boolean isRecent = c!=c0 && (c==UltimatoeUtils.PLAYER_0 || c==UltimatoeUtils.PLAYER_1);
+			b.setIsRecent(isRecent);
 			b.setText("" + c);
 			b.setEnabled(c == UltimatoeUtils.PLAYABLE);
-			if (c == UltimatoeUtils.BORDER) b.setForeground(Color.DARK_GRAY);
 		}
 
 		this.game = game;
@@ -143,9 +182,9 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 	private String title() {
 		String result;
 		if (game.isFinished()) {
-			result = "\"" + UltimatoeUtils.scoreToWinner(game.score()) + "\"" + " has won!";
+			result = game.winner().toString().replace('_', ' ') + " has won!";
 		} else {
-			result = "\"" + game.playerOnTurn().toString() + "\"" + " to go.";
+			result = game.playerOnTurn().toString().replace('_', ' ') + " to go.";
 		}
 		result = "Turn " + game.turn() + ", " + result;
 		result += " --- " + "Ultimatoe";
@@ -153,7 +192,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 	}
 
 	private void autoplay() {
-		if (game.isFinished()) return;
+		if (game==null || game.isFinished()) return;
 		autoplayInit();
 		autoplayFinish();
 	}
@@ -202,7 +241,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 	private final JPanel controlPanel = new JPanel();
 	private final JPanel mainPanel = new JPanel();
 	private final FieldListener listener = new FieldListener();
-	private final List<JButton> buttons = Lists.newArrayList();
+	private final List<FieldButton> buttons = Lists.newArrayList();
 
 	private final Timer timer = new Timer(10, new ActionListener() {
 		@Override public void actionPerformed(ActionEvent e) {
