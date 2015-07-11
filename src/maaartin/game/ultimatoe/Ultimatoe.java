@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 
 import maaartin.game.Game;
 import maaartin.game.GamePlayer;
+import maaartin.game.StandardPlayer;
 
 /**
  * An immutable representation of (the state of)
@@ -33,10 +34,10 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 			for (int y1=0; y1<3; ++y1) {
 				for (int x1=0; x1<3; ++x1) {
 					final int majorIndex = x1 + 3*y1;
-					final UltimatoeBoard board = game.boards[majorIndex];
+					final Tictactoe board = game.boards[majorIndex];
 					for (int y0=0; y0<3; ++y0) {
 						for (int x0=0; x0<3; ++x0) {
-							final UltimatoePlayer player = board.getPlayerOnField(x0 + 3*y0);
+							final StandardPlayer player = board.getPlayerOnField(x0 + 3*y0);
 							final char c = computeChar(game, majorIndex, player);
 							result[4*y1 + y0][4*x1 + x0] = c;
 						}
@@ -52,7 +53,7 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 			toString = sb.toString();
 		}
 
-		private char computeChar(Ultimatoe game, int majorIndex, UltimatoePlayer player) {
+		private char computeChar(Ultimatoe game, int majorIndex, StandardPlayer player) {
 			if (!player.isDummy()) return player.toChar();
 			return game.isPlayable(majorIndex) ? UltimatoeUtils.PLAYABLE : UltimatoeUtils.NON_PLAYABLE;
 		}
@@ -68,8 +69,8 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 		return new ToStringHelper(this).toString;
 	}
 
-	@Override public ImmutableList<GamePlayer<Ultimatoe>> players() {
-		return UltimatoeUtils.PLAYERS;
+	@Override public ImmutableList<GamePlayer> players() {
+		return StandardPlayer.PLAYERS;
 	}
 
 	@Override public double score() {
@@ -85,7 +86,7 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 		final ImmutableBiMap.Builder<Ultimatoe, String> result = ImmutableBiMap.builder();
 		for (int i=0; i<N_BOARDS; ++i) {
 			if (!isPlayable(i)) continue;
-			final UltimatoeBoard b = boards[i];
+			final Tictactoe b = boards[i];
 			for (int j=0; j<N_FIELDS_PER_BOARD; ++j) {
 				if (!b.isPlayable(j)) continue;
 				result.put(play(i, j), UltimatoeUtils.indexesToMoveString(i, j));
@@ -128,7 +129,7 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 
 	private int childrenCount() {
 		int result = 0;
-		for (final UltimatoeBoard b : boards) result += Integer.bitCount(b.possibilities());
+		for (final Tictactoe b : boards) result += Integer.bitCount(b.possibilities());
 		return result;
 	}
 
@@ -139,19 +140,19 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 	 * @param minorIndex the index of field of the board, must be between 0 and 8
 	 */
 	private Ultimatoe play(int majorIndex, int minorIndex) {
-		final UltimatoeBoard oldBoard = boards[majorIndex];
-		final UltimatoeBoard newBoard = oldBoard.play(minorIndex, playerOnTurn());
+		final Tictactoe oldBoard = boards[majorIndex];
+		final Tictactoe newBoard = oldBoard.play(minorIndex, playerOnTurn());
 		checkNotNull(newBoard);
-		final UltimatoeBoard[] newBoards = boards.clone();
+		final Tictactoe[] newBoards = boards.clone();
 		newBoards[majorIndex] = newBoard;
 
 		final boolean sameWinner = oldBoard.winner() == newBoard.winner();
-		final UltimatoePlayer newWinner = sameWinner ? UltimatoePlayer.NOBODY : computeWinner(newBoards);
+		final StandardPlayer newWinner = sameWinner ? StandardPlayer.NOBODY : computeWinner(newBoards);
 		final int newMovesBitmask = computeMovesBitmask(minorIndex, newBoards, newWinner);
 		return new Ultimatoe(turn+1, newMovesBitmask, newWinner, newBoards);
 	}
 
-	private static int computeMovesBitmask(int lastMinorIndex, UltimatoeBoard[] boards, UltimatoePlayer winner) {
+	private static int computeMovesBitmask(int lastMinorIndex, Tictactoe[] boards, StandardPlayer winner) {
 		if (!winner.isDummy()) return 0;
 		if (!boards[lastMinorIndex].isFinished()) return 1 << lastMinorIndex;
 		int result = 0;
@@ -161,23 +162,23 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 		return result;
 	}
 
-	private static final UltimatoePlayer computeWinner(UltimatoeBoard[] boards) {
+	private static final StandardPlayer computeWinner(Tictactoe[] boards) {
 		for (final int[] winningSet : UltimatoeUtils.WINNING_SETS) {
-			final UltimatoePlayer player = boards[winningSet[0]].winner();
+			final StandardPlayer player = boards[winningSet[0]].winner();
 			if (player.isDummy()) continue;
 			if (player != boards[winningSet[1]].winner()) continue;
 			if (player != boards[winningSet[2]].winner()) continue;
 			return player;
 		}
-		return UltimatoePlayer.NOBODY;
+		return StandardPlayer.NOBODY;
 	}
 
 	@Override public boolean isFinished() {
 		return possibilities == 0;
 	}
 
-	@Override public GamePlayer<Ultimatoe> playerOnTurn() {
-		return UltimatoeUtils.PLAYERS.get(turn & 1);
+	@Override public GamePlayer playerOnTurn() {
+		return StandardPlayer.PLAYERS.get(turn & 1);
 	}
 
 	/** Return true if the player on turn can play on the board given by the argument. */
@@ -189,10 +190,10 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 	private static final int N_FIELDS_PER_BOARD = 9;
 
 	public static final Ultimatoe INITIAL_GAME = new Ultimatoe(
-			0, (1<<N_BOARDS) - 1, UltimatoePlayer.NOBODY, new UltimatoeBoard[] {
-				UltimatoeBoard.EMPTY_BOARD, UltimatoeBoard.EMPTY_BOARD, UltimatoeBoard.EMPTY_BOARD,
-				UltimatoeBoard.EMPTY_BOARD, UltimatoeBoard.EMPTY_BOARD, UltimatoeBoard.EMPTY_BOARD,
-				UltimatoeBoard.EMPTY_BOARD, UltimatoeBoard.EMPTY_BOARD, UltimatoeBoard.EMPTY_BOARD,
+			0, (1<<N_BOARDS) - 1, StandardPlayer.NOBODY, new Tictactoe[] {
+				Tictactoe.INITIAL_GAME, Tictactoe.INITIAL_GAME, Tictactoe.INITIAL_GAME,
+				Tictactoe.INITIAL_GAME, Tictactoe.INITIAL_GAME, Tictactoe.INITIAL_GAME,
+				Tictactoe.INITIAL_GAME, Tictactoe.INITIAL_GAME, Tictactoe.INITIAL_GAME,
 			});
 
 	@Getter private final int turn;
@@ -200,8 +201,8 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 	/** Contains one bit per board. See {@link #isPlayable(int)}*/
 	private final int possibilities;
 
-	@Getter @NonNull private final UltimatoePlayer winner;
+	@Getter @NonNull private final StandardPlayer winner;
 
 	/** The 9 boards of the game, from left to right, then top to bottom. */
-	private final UltimatoeBoard[] boards;
+	private final Tictactoe[] boards;
 }

@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableList;
 	 *
 	 * <p>The starting player is the first element, other real players follow, dummies are placed last.
 	 */
-	ImmutableList<GamePlayer<G>> players();
+	ImmutableList<GamePlayer> players();
 
 	/** Return the zero-based turn (i.e., the number of moves already played). */
 	int turn();
@@ -24,10 +24,10 @@ import com.google.common.collect.ImmutableList;
 	 *
 	 * <p>In case {@link #isFinished()} returns true, the result is undefined.
 	 */
-	GamePlayer<G> playerOnTurn();
+	GamePlayer playerOnTurn();
 
 	/** Return the winner. If there's none, a special dummy gets returned. */
-	GamePlayer<G> winner();
+	GamePlayer winner();
 
 	/**
 	 * Return the score for the initial player (the bigger the better for them).

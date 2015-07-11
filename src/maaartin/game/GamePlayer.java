@@ -7,7 +7,7 @@ import javax.annotation.concurrent.Immutable;
  *
  * <p>Not to be confused with {@link GameActor}}.
  */
-@Immutable public interface GamePlayer<G extends Game<G>> {
+@Immutable public interface GamePlayer {
 	/** Return an int uniquely identifiying {@code this}. */
 	int ordinal();
 

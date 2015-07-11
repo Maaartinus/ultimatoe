@@ -1,5 +1,8 @@
 package maaartin.game.ai;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Random;
 
 import javax.annotation.Nullable;
@@ -9,10 +12,9 @@ import lombok.RequiredArgsConstructor;
 
 import com.google.common.collect.ImmutableMap;
 
-import maaartin.game.GameAIParameters;
-
-import maaartin.game.GameActor;
 import maaartin.game.Game;
+import maaartin.game.GameAIParameters;
+import maaartin.game.GameActor;
 
 @RequiredArgsConstructor public final class GameRandomActor<G extends Game<G>> implements GameActor<G> {
 	public GameRandomActor(G initialGame) {
@@ -21,8 +23,11 @@ import maaartin.game.Game;
 
 	@Override @Nullable public String selectMove(G game) {
 		final ImmutableMap<G, String> children = game.children();
-		if (children.isEmpty()) return null;
-		return children.get(game.play(random));
+		checkArgument(!children.isEmpty());
+		final G child = game.play(random);
+		final String result = game.children().get(child);
+		checkNotNull(result);
+		return result;
 	}
 
 	@Getter private final G initialGame;

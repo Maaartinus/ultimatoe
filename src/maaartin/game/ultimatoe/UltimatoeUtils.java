@@ -4,9 +4,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import lombok.experimental.UtilityClass;
 
-import com.google.common.collect.ImmutableList;
-
-import maaartin.game.GamePlayer;
+import maaartin.game.StandardPlayer;
 
 @UtilityClass public final class UltimatoeUtils {
 	/**
@@ -64,11 +62,8 @@ import maaartin.game.GamePlayer;
 		{2, 4, 6}, // antidiagonal
 	};
 
-	static final ImmutableList<GamePlayer<Ultimatoe>> PLAYERS =
-			ImmutableList.<GamePlayer<Ultimatoe>>copyOf(UltimatoePlayer.values());
-
-	final static char PLAYER_0 = UltimatoePlayer.PLAYER_O.toChar();
-	final static char PLAYER_1 = UltimatoePlayer.PLAYER_X.toChar();
+	final static char PLAYER_0 = StandardPlayer.PLAYER_O.toChar();
+	final static char PLAYER_1 = StandardPlayer.PLAYER_X.toChar();
 	final static char PLAYABLE = '·';
 	final static char NON_PLAYABLE = ' ';
 	final static char BORDER = '*';
