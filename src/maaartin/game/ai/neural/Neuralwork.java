@@ -32,7 +32,7 @@ public final class Neuralwork {
 
 		void learn(float[] values, float[] deltas) {
 			final float d = sigmoidDerivedY(values[axon]) * deltas[axon];
-			addend += d;
+			bias += d;
 			for (int i=0; i<weights.length; ++i) {
 				final int j = synapses[i];
 				deltas[j] += d * weights[i];
@@ -41,31 +41,29 @@ public final class Neuralwork {
 		}
 
 		private float linear(float[] values) {
-			float result = addend;
+			float result = bias;
 			for (int i=0; i<weights.length; ++i) result += weights[i] * values[synapses[i]];
 			return result;
 		}
 
+		// https://en.wikipedia.org/wiki/Sigmoid_function
 		private float sigmoid(float x) {
 			final float q = 1 + Math.abs(x);
-			return LIMES * x / q;
+			return x / q;
 		}
 
-		private float sigmoidDerived(float x) {
+		private float sigmoidDerivedX(float x) {
 			final float q = 1 + Math.abs(x);
-			return LIMES / (q*q);
+			return 1 / (q*q);
 		}
 
 		private float sigmoidDerivedY(float y) {
-			final float y2 = LIMES - Math.abs(y);
-			return RECIPROCAL * y2 * y2;
+			final float y2 = 1 - Math.abs(y);
+			return y2 * y2;
 		}
 
-		private static final float LIMES = 1.5f;
-		private static final float RECIPROCAL = 1 / LIMES;
-
 		private final int axon;
-		private float addend;
+		private float bias;
 		private final float[] weights;
 		private final int[] synapses;
 		private final BitSet synapsesBitSet = new BitSet();

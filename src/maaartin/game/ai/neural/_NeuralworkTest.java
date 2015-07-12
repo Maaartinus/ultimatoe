@@ -8,19 +8,19 @@ import junit.framework.TestCase;
 
 public class _NeuralworkTest extends TestCase {
 	public void testAnd() {
-		check(10000, AND_PATTERNS, 2);
+		check(2000, AND_PATTERNS, 2);
 	}
 
 	public void testXor() {
-		check(10000, XOR_PATTERNS, 4);
+		check(2000, XOR_PATTERNS, 4);
 	}
 
 	public void testBinary() {
-		check(10000, BINARY_PATTERNS, 5);
+		check(3000, BINARY_PATTERNS, 5);
 	}
 
 	public void testTernary() {
-		check(10000, TERNARY_PATTERNS, 7);
+		check(3000, TERNARY_PATTERNS, 7);
 	}
 
 	private void check(int limit, float[][][] patterns, int hiddenLength) {

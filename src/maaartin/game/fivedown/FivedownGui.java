@@ -104,11 +104,11 @@ import maaartin.game.ai.GameRandomActor;
 			@Override public void actionPerformed(ActionEvent e) {
 				final JToggleButton b = (JToggleButton) e.getSource();
 				final boolean isOn = b.getModel().isSelected();
-				final boolean isX = b.getText().endsWith("X");
-				if (isX) {
-					actors[1] = isOn ? new GameMonteCarloActor<>(INITIAL_GAME) : null;
+				final boolean isO = b.getText().endsWith("O");
+				if (isO) {
+					actors[1] = isOn ? new GameRandomActor<>(INITIAL_GAME) : null;
 				} else {
-					actors[0] = isOn ? new GameRandomActor<>(INITIAL_GAME) : null;
+					actors[0] = isOn ? new GameMonteCarloActor<>(INITIAL_GAME) : null;
 				}
 
 				final boolean isFullAuto = actors[0]!=null && actors[1]!=null;
@@ -122,7 +122,6 @@ import maaartin.game.ai.GameRandomActor;
 			final JToggleButton autoButton = new JToggleButton(s);
 			autoButton.addActionListener(autoListener);
 			controlPanel.add(autoButton);
-			if (s.endsWith("X")) autoButton.doClick();
 		}
 
 		fasterButton.setEnabled(false);

@@ -164,7 +164,7 @@ public final class Fivedown extends StandardGame<Fivedown> {
 	private static final int ENERGY_FOR_BALOON = 2;
 
 	private static final GamePlayer[] PLAYERS_INTERNAL =
-		{StandardPlayer.NOBODY, StandardPlayer.PLAYER_O, StandardPlayer.PLAYER_X};
+		{StandardPlayer.NOBODY, StandardPlayer.PLAYER_X, StandardPlayer.PLAYER_O};
 
 	public static final Fivedown INITIAL_GAME = new Fivedown(0, StandardPlayer.NOBODY, 0, 5, new int[HEIGHT]);
 
