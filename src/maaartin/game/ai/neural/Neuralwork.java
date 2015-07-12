@@ -16,7 +16,7 @@ public final class Neuralwork {
 			checkNotNull(random);
 			this.axon = axon;
 			weights = new float[arity];
-			for (int i=0; i<arity; ++i) weights[i] = random.nextFloat() - 0.5f;
+			for (int i=0; i<arity; ++i) weights[i] = 2 * random.nextFloat() - 1;
 			synapses = new int[arity];
 			for (int i=0; i<arity; ) {
 				final int n = random.nextInt(axon);
@@ -32,6 +32,7 @@ public final class Neuralwork {
 
 		void learn(float[] values, float[] deltas) {
 			final float d = sigmoidDerived(linear(values)) * deltas[axon];
+			//			alpha += 0.05 * d;
 			for (int i=0; i<weights.length; ++i) {
 				final int j = synapses[i];
 				deltas[j] += d * weights[i];
@@ -40,7 +41,7 @@ public final class Neuralwork {
 		}
 
 		private float linear(float[] values) {
-			float result = 0;
+			float result = alpha;
 			for (int i=0; i<weights.length; ++i) result += weights[i] * values[synapses[i]];
 			return result;
 		}
@@ -56,6 +57,7 @@ public final class Neuralwork {
 		}
 
 		private final int axon;
+		private float alpha;
 		private final float[] weights;
 		private final int[] synapses;
 		private final BitSet synapsesBitSet = new BitSet();
