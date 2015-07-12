@@ -15,14 +15,15 @@ import lombok.RequiredArgsConstructor;
 import maaartin.game.Game;
 import maaartin.game.GameActor;
 
-public final class GameClient<G extends Game<G>> implements Runnable {
+public final class GameClient implements Runnable {
 	@RequiredArgsConstructor public static final class Context {//TODO
 		private final String userName;
 		private final String gameName;
 		private final String party;
 	}
 
-	private GameClient(URL url, GameActor<G> actor, boolean isStartingPlayer) throws IOException {//TODO
+	private GameClient(URL url, Game<?> game, GameActor actor, boolean isStartingPlayer) throws IOException {//TODO
+		this.game = game;
 		this.actor = actor;
 		this.isStartingPlayer = isStartingPlayer;
 		connection = url.openConnection();
@@ -34,7 +35,6 @@ public final class GameClient<G extends Game<G>> implements Runnable {
 
 	@Override public void run() {
 		try {
-			game = actor.initialGame();
 			if (isStartingPlayer) write();
 			while (true) {
 				if (game.isFinished()) break;
@@ -69,11 +69,11 @@ public final class GameClient<G extends Game<G>> implements Runnable {
 		e.printStackTrace();
 	}
 
-	private final GameActor<G> actor;
+	private final GameActor actor;
 	private final URLConnection connection;
 	private final BufferedReader in;
 	private final BufferedWriter out;
 	private final boolean isStartingPlayer;
 
-	private G game;
+	private Game<? extends Game<?>> game;
 }

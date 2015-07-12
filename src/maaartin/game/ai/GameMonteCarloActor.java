@@ -20,19 +20,19 @@ import maaartin.game.Game;
 import maaartin.game.GameAIParameters;
 import maaartin.game.GameActor;
 
-@RequiredArgsConstructor public final class GameMonteCarloActor<G extends Game<G>> implements GameActor<G> {
-	public GameMonteCarloActor(G initialGame) {
-		this(initialGame, new GameAIParameters());
+@RequiredArgsConstructor public final class GameMonteCarloActor implements GameActor {
+	public GameMonteCarloActor() {
+		this(new GameAIParameters());
 	}
 
-	private static final class Evaluator<G extends Game<G>> {
-		private static final class ScoreFunction<G extends Game<G>> implements Function<Evaluator<G>, Double> {
+	private static final class Evaluator {
+		private static final class ScoreFunction implements Function<Evaluator, Double> {
 			ScoreFunction(boolean isMinimizing, double uncertaintyWeight) {
 				this.uncertaintyWeight = uncertaintyWeight;
 				this.factor = isMinimizing ? -1 : +1;
 			}
 
-			@Override public Double apply(Evaluator<G> input) {
+			@Override public Double apply(Evaluator input) {
 				return Double.valueOf(factor * input.score(uncertaintyWeight));
 			}
 
@@ -40,7 +40,7 @@ import maaartin.game.GameActor;
 			private final double uncertaintyWeight;
 		}
 
-		Evaluator(G game, GameAIParameters parameters, long seed) {
+		Evaluator(Game<?> game, GameAIParameters parameters, long seed) {
 			this.game = game;
 			this.parameters = parameters;
 			random = new Random(seed ^ (seed>>32));
@@ -48,7 +48,7 @@ import maaartin.game.GameActor;
 			ownCount = 1;
 		}
 
-		Evaluator<G> spend(int budget) {
+		Evaluator spend(int budget) {
 			spendInternal(budget);
 			propagate();
 			return this;
@@ -88,8 +88,8 @@ import maaartin.game.GameActor;
 
 		private void spendInternalExperimental1(int budget) {
 			final int length = evaluators.size();
-			final ScoreFunction<G> function = new ScoreFunction<G>(isMinimizing(), 1);
-			final Ordering<Evaluator<G>> ordering = Ordering.natural().onResultOf(function).reverse();
+			final ScoreFunction function = new ScoreFunction(isMinimizing(), 1);
+			final Ordering<Evaluator> ordering = Ordering.natural().onResultOf(function).reverse();
 			while (true) {
 				for (int n=1; n<=2; ++n) {
 					final int limit = length / n;
@@ -107,8 +107,8 @@ import maaartin.game.GameActor;
 
 		private void spendInternalExperimental2(int budget) {
 			final int length = evaluators.size();
-			final ScoreFunction<G> function = new ScoreFunction<G>(isMinimizing(), 2);
-			final Ordering<Evaluator<G>> ordering = Ordering.natural().onResultOf(function).reverse();
+			final ScoreFunction function = new ScoreFunction(isMinimizing(), 2);
+			final Ordering<Evaluator> ordering = Ordering.natural().onResultOf(function).reverse();
 			while (true) {
 				for (int n=1; n<=2*length; ++n) {
 					final int limit = length / n;
@@ -125,7 +125,7 @@ import maaartin.game.GameActor;
 		private void propagate() {
 			if (evaluators==null) return;
 			if (evaluators.isEmpty()) return;
-			final Evaluator<G> bestEvaluator = evaluators.get(getBestIndex());
+			final Evaluator bestEvaluator = evaluators.get(getBestIndex());
 			bestChild = bestEvaluator.game;
 			propagatedSum = bestEvaluator.sum();
 			propagatedCount = bestEvaluator.count();
@@ -141,15 +141,16 @@ import maaartin.game.GameActor;
 		}
 
 		private double nextScore() {
-			for (G game=this.game; ; game=game.play(random)) {
+			for (Game<?> game=this.game; ; game=game.play(random)) {
 				if (game.isFinished()) return game.score();
 			}
 		}
 
 		private void initEvaluators() {
-			final ImmutableList<G> children = game.children().keySet().asList();
+			@SuppressWarnings("unchecked")
+			final ImmutableList<Game<?>> children = (ImmutableList<Game<?>>) game.children().keySet().asList();
 			evaluators = Lists.newArrayList();
-			for (final G game : children) evaluators.add(new Evaluator<>(game, parameters, random.nextLong()));
+			for (final Game<?> game : children) evaluators.add(new Evaluator(game, parameters, random.nextLong()));
 			Collections.shuffle(Arrays.asList(evaluators), random);
 		}
 
@@ -174,24 +175,25 @@ import maaartin.game.GameActor;
 			return ownCount + propagatedCount;
 		}
 
-		private final G game;
+		private final Game<?> game;
 		private final GameAIParameters parameters;
 		private final Random random;
 
-		private List<Evaluator<G>> evaluators;
+		private List<Evaluator> evaluators;
 
-		@Getter private G bestChild;
+		@Getter private Game<?> bestChild;
 		private double ownSum;
 		private double ownCount;
 		private double propagatedSum;
 		private double propagatedCount;
 	}
 
-	@Override public String selectMove(G game) {
-		final ImmutableList<G> children = game.children().keySet().asList();
+	@Override public String selectMove(Game<?> game) {
+		@SuppressWarnings("unchecked")
+		final ImmutableList<Game<?>> children = (ImmutableList<Game<?>>) game.children().keySet().asList();
 		checkArgument(!children.isEmpty());
-		final Evaluator<G> evaluator = new Evaluator<>(game, parameters, random.nextLong());
-		G bestChild = evaluator.spend(parameters.budget()).bestChild();
+		final Evaluator evaluator = new Evaluator(game, parameters, random.nextLong());
+		Game<?> bestChild = evaluator.spend(parameters.budget()).bestChild();
 		if (bestChild==null) bestChild = game.play(random);
 		checkNotNull(bestChild);
 		final String result = game.children().get(bestChild);
@@ -199,7 +201,6 @@ import maaartin.game.GameActor;
 		return result;
 	}
 
-	@Getter private final G initialGame;
 	@Getter private final GameAIParameters parameters;
 	private final Random random = new Random();
 }

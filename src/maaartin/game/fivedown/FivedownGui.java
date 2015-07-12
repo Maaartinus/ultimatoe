@@ -106,9 +106,9 @@ import maaartin.game.ai.GameRandomActor;
 				final boolean isOn = b.getModel().isSelected();
 				final boolean isO = b.getText().endsWith("O");
 				if (isO) {
-					actors[1] = isOn ? new GameRandomActor<>(INITIAL_GAME) : null;
+					actors[1] = isOn ? new GameRandomActor() : null;
 				} else {
-					actors[0] = isOn ? new GameMonteCarloActor<>(INITIAL_GAME) : null;
+					actors[0] = isOn ? new GameMonteCarloActor() : null;
 				}
 
 				final boolean isFullAuto = actors[0]!=null && actors[1]!=null;
@@ -217,7 +217,7 @@ import maaartin.game.ai.GameRandomActor;
 	/** Start the AI if needed. */
 	private void autoplayInit() {
 		if (swingWorker!=null) return;
-		final GameActor<Fivedown> actor = actors[game.playerOnTurn().ordinal()];
+		final GameActor actor = actors[game.playerOnTurn().ordinal()];
 		if (actor==null) return;
 		swingWorker = apply(actor);
 		swingWorker.execute();
@@ -240,7 +240,7 @@ import maaartin.game.ai.GameRandomActor;
 		}
 	}
 
-	private SwingWorker<String, Void> apply(final GameActor<Fivedown> actor) {
+	private SwingWorker<String, Void> apply(final GameActor actor) {
 		return new SwingWorker<String, Void>() {
 			@Override protected String doInBackground() throws Exception {
 				return actor.selectMove(game);
@@ -277,6 +277,5 @@ import maaartin.game.ai.GameRandomActor;
 	/** The worker currently running the AI computing the move, or null. */
 	@Nullable private SwingWorker<String, Void> swingWorker;
 
-	@SuppressWarnings("unchecked")
-	private final GameActor<Fivedown>[] actors = (GameActor<Fivedown>[]) new GameActor<?>[2];
+	private final GameActor[] actors = new GameActor[2];
 }

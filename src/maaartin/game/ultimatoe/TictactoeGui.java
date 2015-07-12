@@ -103,9 +103,9 @@ public final class TictactoeGui implements GameListener<Tictactoe> {
 				final boolean isOn = b.getModel().isSelected();
 				final boolean isO = b.getText().endsWith("O");
 				if (isO) {
-					actors[1] = isOn ? new GameRandomActor<>(INITIAL_GAME) : null;
+					actors[1] = isOn ? new GameRandomActor() : null;
 				} else {
-					actors[0] = isOn ? new GameMonteCarloActor<>(INITIAL_GAME) : null;
+					actors[0] = isOn ? new GameMonteCarloActor() : null;
 				}
 
 				final boolean isFullAuto = actors[0]!=null && actors[1]!=null;
@@ -197,7 +197,7 @@ public final class TictactoeGui implements GameListener<Tictactoe> {
 	/** Start the AI if needed. */
 	private void autoplayInit() {
 		if (swingWorker!=null) return;
-		final GameActor<Tictactoe> actor = actors[game.playerOnTurn().ordinal()];
+		final GameActor actor = actors[game.playerOnTurn().ordinal()];
 		if (actor==null) return;
 		swingWorker = apply(actor);
 		swingWorker.execute();
@@ -219,7 +219,7 @@ public final class TictactoeGui implements GameListener<Tictactoe> {
 		}
 	}
 
-	private SwingWorker<String, Void> apply(final GameActor<Tictactoe> actor) {
+	private SwingWorker<String, Void> apply(final GameActor actor) {
 		return new SwingWorker<String, Void>() {
 			@Override protected String doInBackground() throws Exception {
 				return actor.selectMove(game);
@@ -253,6 +253,5 @@ public final class TictactoeGui implements GameListener<Tictactoe> {
 	/** The worker currently running the AI computing the move, or null. */
 	@Nullable private SwingWorker<String, Void> swingWorker;
 
-	@SuppressWarnings("unchecked")
-	private final GameActor<Tictactoe>[] actors = (GameActor<Tictactoe>[]) new GameActor<?>[2];
+	private final GameActor[] actors = new GameActor[2];
 }
