@@ -8,7 +8,7 @@ import junit.framework.TestCase;
 
 public class _NeuralworkTest extends TestCase {
 	public void testAnd() {
-		check(10000, AND_PATTERNS, 1);
+		check(10000, AND_PATTERNS, 2);
 	}
 
 	public void testXor() {

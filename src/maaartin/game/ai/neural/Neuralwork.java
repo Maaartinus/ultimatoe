@@ -31,8 +31,8 @@ public final class Neuralwork {
 		}
 
 		void learn(float[] values, float[] deltas) {
-			final float d = sigmoidDerived(linear(values)) * deltas[axon];
-			//			alpha += 0.05 * d;
+			final float d = sigmoidDerivedY(values[axon]) * deltas[axon];
+			addend += d;
 			for (int i=0; i<weights.length; ++i) {
 				final int j = synapses[i];
 				deltas[j] += d * weights[i];
@@ -41,23 +41,31 @@ public final class Neuralwork {
 		}
 
 		private float linear(float[] values) {
-			float result = alpha;
+			float result = addend;
 			for (int i=0; i<weights.length; ++i) result += weights[i] * values[synapses[i]];
 			return result;
 		}
 
 		private float sigmoid(float x) {
-			final float q = 0.5f + Math.abs(x);
-			return x / q;
+			final float q = 1 + Math.abs(x);
+			return LIMES * x / q;
 		}
 
 		private float sigmoidDerived(float x) {
-			final float q = 0.5f + Math.abs(x);
-			return 0.5f / (q*q);
+			final float q = 1 + Math.abs(x);
+			return LIMES / (q*q);
 		}
 
+		private float sigmoidDerivedY(float y) {
+			final float y2 = LIMES - Math.abs(y);
+			return RECIPROCAL * y2 * y2;
+		}
+
+		private static final float LIMES = 1.5f;
+		private static final float RECIPROCAL = 1 / LIMES;
+
 		private final int axon;
-		private float alpha;
+		private float addend;
 		private final float[] weights;
 		private final int[] synapses;
 		private final BitSet synapsesBitSet = new BitSet();
@@ -73,10 +81,9 @@ public final class Neuralwork {
 		this.hiddenLength = hiddenLength;
 		this.outLength = outLength;
 		neurons = new Neuron[hiddenLength + outLength];
-		for (int i=0, j=inLength+1; i<neurons.length; ++i, ++j) neurons[i] = new Neuron(j, random, Math.min(j, arity));
-		final int length = inLength + 1 + hiddenLength + outLength;
+		for (int i=0, j=inLength; i<neurons.length; ++i, ++j) neurons[i] = new Neuron(j, random, Math.min(j, arity));
+		final int length = inLength + hiddenLength + outLength;
 		values = new float[length];
-		values[inLength] = 1;
 		deltas = new float[length];
 	}
 
@@ -88,7 +95,7 @@ public final class Neuralwork {
 
 	public void output(float[] output) {
 		checkArgument(output.length == outLength);
-		System.arraycopy(values, inLength + 1 + hiddenLength, output, 0, outLength);
+		System.arraycopy(values, inLength + hiddenLength, output, 0, outLength);
 	}
 
 	public void learn(float[] desired, float rate) {
