@@ -82,9 +82,25 @@ import maaartin.game.GameActor;
 		}
 
 		private void spendInternalExperimental(int budget) {
-			spendInternalExperimental2(budget);
+			spendInternalExperimental4(budget);
 		}
 
+		private void spendInternalExperimental4(int budget) {
+			final int length = evaluators.size();
+			while (true) {
+				for (int i=0; i<length; ++i, --budget) {
+					if (budget<=0) return;
+					evaluators.get(i).spend(1);
+				}
+				final ScoreFunction function = new ScoreFunction(isMinimizing(), 5);
+				final Ordering<Evaluator> ordering = Ordering.natural().onResultOf(function);
+				Collections.sort(evaluators, ordering);
+				for (int i=length/2; i<length; ++i, --budget) {
+					if (budget<=0) return;
+					evaluators.get(i).spend(1);
+				}
+			}
+		}
 
 		private void spendInternalExperimental1(int budget) {
 			final int length = evaluators.size();
@@ -107,7 +123,7 @@ import maaartin.game.GameActor;
 
 		private void spendInternalExperimental2(int budget) {
 			final int length = evaluators.size();
-			final ScoreFunction function = new ScoreFunction(isMinimizing(), 2);
+			final ScoreFunction function = new ScoreFunction(isMinimizing(), 5);
 			final Ordering<Evaluator> ordering = Ordering.natural().onResultOf(function).reverse();
 			while (true) {
 				for (int n=1; n<=2*length; ++n) {
@@ -122,6 +138,19 @@ import maaartin.game.GameActor;
 				}
 			}
 		}
+
+		private void spendInternalExperimental3(int budget) {
+			final int length = evaluators.size();
+			while (true) {
+				final boolean recurse = budget > 10*length;
+				final int b = recurse ? 10 : 1;
+				for (int i=0; i<length; ++i, budget-=b) {
+					if (budget<=0) return;
+					evaluators.get(i).spend(b);
+				}
+			}
+		}
+
 		private void propagate() {
 			if (evaluators==null) return;
 			if (evaluators.isEmpty()) return;

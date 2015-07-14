@@ -9,13 +9,19 @@ import maaartin.game.GameActor;
 
 @RequiredArgsConstructor public class GameMatch<G extends Game<G>> implements Runnable {
 	@Override @SuppressWarnings("boxing") public void run() {
-		final GameActor advancedActor = new GameMonteCarloActor();
-		//		final GameActor<G> normalActor = new GameMonteCarloActor<>(initialGame);
-		final GameActor normalActor = new GameRandomActor();
-		advancedActor.parameters().isExperimental(true);
+		final GameActor experimentalActor = new GameMonteCarloActor();
+		final GameActor normalActor = new GameMonteCarloActor();
+		//		final GameActor normalActor = new GameRandomActor();
+		normalActor.parameters().budget(1000);
+		experimentalActor.parameters().budget(1000);
+		experimentalActor.parameters().isExperimental(true);
 		int score = 0;
-		for (int i=0; i<NUM_GAMES; ++i) score += matchTwice(advancedActor, normalActor);
-		System.out.format("Score: %s (range: %s to %s)\n", score, -2*NUM_GAMES, +2*NUM_GAMES);
+		int games = 0;
+		while (true) {
+			games += 2 * NUM_GAMES;
+			for (int i=0; i<NUM_GAMES; ++i) score += matchTwice(experimentalActor, normalActor);
+			System.out.format("Score: %+.1f%% (games: %s)\n", 100.0 * score / games, games);
+		}
 	}
 
 	private double matchTwice(GameActor actor0, GameActor actor1) {
@@ -34,6 +40,6 @@ import maaartin.game.GameActor;
 		return game.score();
 	}
 
-	private static final int NUM_GAMES = 50;
+	private static final int NUM_GAMES = 5;
 	private final G initialGame;
 }

@@ -47,17 +47,17 @@ public final class Neuralwork {
 		}
 
 		// https://en.wikipedia.org/wiki/Sigmoid_function
-		private float sigmoid(float x) {
+		private static float sigmoid(float x) {
 			final float q = 1 + Math.abs(x);
 			return x / q;
 		}
 
-		private float sigmoidDerivedX(float x) {
+		private static float sigmoidDerivedX(float x) {
 			final float q = 1 + Math.abs(x);
 			return 1 / (q*q);
 		}
 
-		private float sigmoidDerivedY(float y) {
+		private static float sigmoidDerivedY(float y) {
 			final float y2 = 1 - Math.abs(y);
 			return y2 * y2;
 		}

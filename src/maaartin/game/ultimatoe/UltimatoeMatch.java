@@ -9,6 +9,6 @@ public class UltimatoeMatch extends GameMatch<Ultimatoe> {
 
 	public static void main(String[] args) {
 		System.out.println("Running two Monte Carlos against each other (endless loop).");
-		while (true) new UltimatoeMatch().run();
+		new UltimatoeMatch().run();
 	}
 }

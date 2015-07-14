@@ -15,12 +15,24 @@ public class _NeuralworkTest extends TestCase {
 		check(2000, XOR_PATTERNS, 4);
 	}
 
-	public void testBinary() {
-		check(3000, BINARY_PATTERNS, 5);
+	public void testTwoInputPatterns() {
+		check(3000, TWO_INPUT_PATTERNS, 5);
 	}
 
-	public void testTernary() {
-		check(3000, TERNARY_PATTERNS, 7);
+	public void testThreeInputPatters() {
+		check(3000, THREE_INPUT_PATTERNS, 7);
+	}
+
+	public void testXor3() {
+		check(3000, makeXor(3), 7);
+	}
+
+	public void testXor4() {
+		check(8000, makeXor(4), 9);
+	}
+
+	public void testXor5() {
+		check(6000, makeXor(5), 20);
 	}
 
 	private void check(int limit, float[][][] patterns, int hiddenLength) {
@@ -55,6 +67,24 @@ public class _NeuralworkTest extends TestCase {
 		}
 	}
 
+	private static final float[][][] makeXor(int inLength) {
+		final int count = 1<<inLength;
+		final float[][][] result = new float[count][2][];
+		for (int i=0; i<count; ++i) {
+			final float[] input = new float[inLength];
+			int xor = 0;
+			for (int j=0; j<input.length; ++j) {
+				final int x = (i>>j) & 1;
+				xor ^= x;
+				input[j] = x;
+			}
+			final float output[] = {xor};
+			result[i][0] = input;
+			result[i][1] = output;
+		}
+		return result;
+	}
+
 	private static final float[][][] AND_PATTERNS = {
 		{{0, 0}, {0}},
 		{{0, 1}, {0}},
@@ -70,7 +100,7 @@ public class _NeuralworkTest extends TestCase {
 	};
 
 	// implication and nxor
-	private static final float[][][] BINARY_PATTERNS = {
+	private static final float[][][] TWO_INPUT_PATTERNS = {
 		{{0, 0}, {1, 1}},
 		{{0, 1}, {1, 0}},
 		{{1, 0}, {0, 0}},
@@ -78,7 +108,7 @@ public class _NeuralworkTest extends TestCase {
 	};
 
 	// majority and xor
-	private static final float[][][] TERNARY_PATTERNS = {
+	private static final float[][][] THREE_INPUT_PATTERNS = {
 		{{0, 0, 0}, {0, 0}},
 		{{0, 0, 1}, {0, 1}},
 		{{0, 1, 0}, {0, 1}},
