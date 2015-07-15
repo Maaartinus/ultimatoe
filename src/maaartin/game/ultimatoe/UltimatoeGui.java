@@ -92,7 +92,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		private boolean isRecent;
 	}
 
-	private UltimatoeGui() {
+	public UltimatoeGui() {
 		final JButton fasterButton = new JButton(new AbstractAction("faster") {
 			@Override public void actionPerformed(ActionEvent e) {
 				autoplayDelayMillis /= SPEEDUP_FACTOR;
