@@ -12,6 +12,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.UtilityClass;
 
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
@@ -26,39 +27,40 @@ import maaartin.game.StandardPlayer;
  */
 @RequiredArgsConstructor(access=AccessLevel.PRIVATE) @EqualsAndHashCode @Immutable
 public final class Ultimatoe implements Game<Ultimatoe> {
-	private static final class ToStringHelper {
-		ToStringHelper(Ultimatoe game) {
-			final char[][] result = new char[11][11];
-			for (int i=0; i<11; ++i) Arrays.fill(result[i], UltimatoeUtils.BORDER);
+	@UtilityClass private static final class ToStringHelper {
+		static String toString(Ultimatoe game) {
+			final char[][] result = new char[BORDERED_BIG_SIZE][BORDERED_BIG_SIZE];
+			for (int i=0; i<BORDERED_BIG_SIZE; ++i) Arrays.fill(result[i], UltimatoeUtils.BORDER);
 
-			for (int y1=0; y1<3; ++y1) {
-				for (int x1=0; x1<3; ++x1) {
-					final int majorIndex = x1 + 3*y1;
+			for (int majorY=0; majorY<3; ++majorY) {
+				for (int majorX=0; majorX<3; ++majorX) {
+					final int majorIndex = majorX + 3*majorY;
 					final Tictactoe board = game.boards[majorIndex];
-					for (int y0=0; y0<3; ++y0) {
-						for (int x0=0; x0<3; ++x0) {
-							final StandardPlayer player = board.getPlayerOnField(x0 + 3*y0);
+					for (int minorY=0; minorY<3; ++minorY) {
+						for (int minorX=0; minorX<3; ++minorX) {
+							final StandardPlayer player = board.getPlayerOnField(minorX + 3*minorY);
 							final char c = computeChar(game, majorIndex, player);
-							result[4*y1 + y0][4*x1 + x0] = c;
+							result[BORDERED_SMALL_SIZE*majorY + minorY][BORDERED_SMALL_SIZE*majorX + minorX] = c;
 						}
 					}
 				}
 			}
 
 			final StringBuilder sb = new StringBuilder();
-			for (int i=0; i<11; ++i) {
+			for (int i=0; i<BORDERED_BIG_SIZE; ++i) {
 				if (i>0) sb.append("\n");
 				sb.append(result[i]);
 			}
-			toString = sb.toString();
+			return sb.toString();
 		}
 
-		private char computeChar(Ultimatoe game, int majorIndex, StandardPlayer player) {
+		private static char computeChar(Ultimatoe game, int majorIndex, StandardPlayer player) {
 			if (!player.isDummy()) return player.toChar();
 			return game.isPlayable(majorIndex) ? UltimatoeUtils.PLAYABLE : UltimatoeUtils.NON_PLAYABLE;
 		}
 
-		private final String toString;
+		private static final int BORDERED_SMALL_SIZE = 4;
+		private static final int BORDERED_BIG_SIZE = 11;
 	}
 
 	@Override public String toString() {
@@ -66,7 +68,7 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 	}
 
 	@Override public String asString() {
-		return new ToStringHelper(this).toString;
+		return ToStringHelper.toString(this);
 	}
 
 	@Override public ImmutableList<GamePlayer> players() {
@@ -104,11 +106,11 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 
 	@Override public Ultimatoe play(Random random) {
 		checkNotNull(random);
-		if (Integer.bitCount(possibilities) == 1) {
+		if (Integer.bitCount(possibilities) == 1) { // TODO measure if it's worth it.
 			final int i = Integer.numberOfTrailingZeros(possibilities);
 			return play(i, random);
 		}
-		int countdown = childrenCount();
+		int countdown = random.nextInt(childrenCount());
 		for (int i=0; i<N_BOARDS; ++i) {
 			if (!isPlayable(i)) continue;
 			countdown -= Integer.bitCount(boards[i].possibilities());

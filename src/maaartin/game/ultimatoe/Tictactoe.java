@@ -11,6 +11,7 @@ import java.util.Random;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -120,7 +121,7 @@ import maaartin.game.StandardPlayer;
 	}
 
 	/**
-	 * Return true if iy's possible to play at field with the given index,
+	 * Return true if it's possible to play at field with the given index,
 	 * i.e., if the field is empty and the board hasn't been decided yet.
 	 */
 	boolean isPlayable(int index) {
@@ -158,14 +159,14 @@ import maaartin.game.StandardPlayer;
 	 *
 	 * <p>For details, see the code of {@link Tictactoe#isPlayable(int)}.
 	 */
-	@Getter private final int possibilities;
+	@Getter(AccessLevel.PROTECTED) private final int possibilities;
 
 	/**
 	 * An array of all child boards, i.e., boards resulting from one player placing one piece on an empty field.
 	 *
 	 * <p>For details, see the code of {@link Tictactoe#childIndex(int, GamePlayer)}.
 	 * A 1D arrays gets used for maximum speed (better memory locality).
-	 * This may or mey not be a premature optimization.
+	 * This may or may not be a premature optimization.
 	 */
 	private final Tictactoe[] childArray = new Tictactoe[2*AREA];
 
