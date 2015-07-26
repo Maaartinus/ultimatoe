@@ -1,4 +1,4 @@
-package maaartin.game.zomis;
+package maaartin.game.ai.zomis;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -14,7 +14,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -24,27 +23,21 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
-import maaartin.game.ai.GameMonteCarloActor;
-
-import maaartin.game.ultimatoe.UltimatoeGui;
-
-import maaartin.game.ultimatoe.UltimatoeUtils;
-
-import maaartin.game.ultimatoe.Ultimatoe;
-
-import maaartin.game.ai.GameRandomActor;
-
 import maaartin.game.Game;
 import maaartin.game.GameAIParameters;
 import maaartin.game.GameActor;
+import maaartin.game.ai.GameMonteCarloActor;
+import maaartin.game.ultimatoe.Ultimatoe;
+import maaartin.game.ultimatoe.UltimatoeGui;
+import maaartin.game.zomis.GameZomisActorDemo;
 
 import de.grajcar.dout.Dout;
 
-public class GameZomisActor implements GameActor, Runnable {
+public class GameZomisActor implements GameActor {
 	@RequiredArgsConstructor private class Receiver implements Runnable {
 		@Override public void run() {
 			try {
-				while (!done.get()) step();
+				while (!done) step();
 			} catch (IOException | RuntimeException e) {
 				log(e);
 			} finally {
@@ -59,7 +52,11 @@ public class GameZomisActor implements GameActor, Runnable {
 				close();
 			} else {
 				final GameZomisMessage message = GameZomisMessage.forLine(line);
+				Dout.a("IN-QUEUE-ADD", message);
 				inQueue.add(message);
+			}
+			synchronized ($lock) {
+				$lock.notifyAll();
 			}
 		}
 
@@ -69,7 +66,7 @@ public class GameZomisActor implements GameActor, Runnable {
 	@RequiredArgsConstructor private class Sender implements Runnable {
 		@Override public void run() {
 			try {
-				while (!done.get()) step();
+				while (!done) step();
 			} catch (IOException | InterruptedException | RuntimeException e) {
 				log(e);
 			} finally {
@@ -90,17 +87,42 @@ public class GameZomisActor implements GameActor, Runnable {
 		private final BufferedWriter out;
 	}
 
-	@Override public String selectMove(Game<?> game) {
-		return null;
+	private class Initializer implements Runnable {
+		@Override public void run() {
+			try {
+				if (!isSecond) {
+					run0();
+				} else {
+					run1();
+				}
+				Dout.a(actorName, "DONE", playerIndex);
+			} catch (final Exception e) {
+				log(e);
+				close();
+			}
+		}
+
+		private void run0() throws InterruptedException {
+			awaitPartner(ZONIS_IDIOT);
+			invite(ZONIS_IDIOT);
+		}
+
+		private void run1() throws InterruptedException {
+			awaitPartner(GameZomisActorDemo.ACTOR_0);
+			awaitGame();
+			processInQueue();
+		}
 	}
 
-	public GameZomisActor(String actorName, boolean isSecond) {
+	public GameZomisActor(boolean isActive, String actorName, boolean isSecond) {
+		this.isActive = isActive;
 		this.actorName = actorName;
 		this.isSecond = isSecond;
 		try {
 			socket = new Socket(HOST_NAME, HOST_PORT);
 			sender = new Sender(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
 			receiver = new Receiver(new BufferedReader(new InputStreamReader(socket.getInputStream())));
+			executorService.submit(new Initializer());
 			executorService.submit(sender);
 			executorService.submit(receiver);
 		} catch (final Exception e) {
@@ -110,80 +132,44 @@ public class GameZomisActor implements GameActor, Runnable {
 		outQueue.add(GameZomisMessage.Type.OUT_USER.newMessage("xxx", actorName, password));
 	}
 
-	@Override public void run() {
-		try {
-			if (!isSecond) {
-				run0();
-			} else {
-				run1();
+	@Override @Synchronized public String selectMove(Game<?> game) {
+		while (!done) {
+			final String result = move;
+			if (result != null) {
+				move = null;
+				return result;
 			}
-			Dout.a(actorName, "DONE", playerIndex);
-			Thread.sleep(9000);
-		} catch (final Exception e) {
-			log(e);
-			close();
-		} finally {
-			close();
+			try {
+				$lock.wait();
+			} catch (final InterruptedException e) {
+				throw new RuntimeException(e);
+			}
 		}
+		throw new RuntimeException("Game finished");
 	}
 
 	void setListener(UltimatoeGui listener) {
 		this.listener = listener;
 	}
 
-	private void run0() throws InterruptedException {
-		awaitPartner(1000, GameZomisActorDemo.ACTOR_1);
-		invite(GameZomisActorDemo.ACTOR_1);
-		awaitGame(1000);
-		sendMove("00");
-		while (!done.get()) {
-			processInQueue();
-			Thread.sleep(1000);
-
-		}
-	}
-
-	private void run1() throws Exception {
-		Thread.sleep(100);
-		awaitPartner(1000, GameZomisActorDemo.ACTOR_0);
-		awaitGame(1000);
-		while (!done.get()) {
-			processInQueue();
-			Thread.sleep(1000);
-		}
-	}
-
-
 	@Synchronized void invite(String partnerName) {
 		processInQueue();
 		outQueue.add(GameZomisMessage.Type.OUT_INVT.newMessage("UTTT", partnerName));
 	}
 
-	@Synchronized void awaitPartner(long millis, String partnerName) {
-		final long start = System.currentTimeMillis();
-		while (System.currentTimeMillis() < start + millis) {
+	@Synchronized void awaitPartner(String partnerName) throws InterruptedException {
+		while (!done) {
 			processInQueue();
 			if (onlinePlayers.contains(partnerName)) return;
-			try {
-				Thread.sleep(10);
-			} catch (final InterruptedException e) {
-				log(e);
-				throw new RuntimeException(e);
-			}
+			$lock.wait();
 		}
 	}
 
-	@Synchronized void awaitGame(long millis) {
-		final long start = System.currentTimeMillis();
-		while (System.currentTimeMillis() < start + millis) {
+	@Synchronized private void awaitGame() throws InterruptedException {
+		while (true) {
 			processInQueue();
 			if (gameId!=null) return;
-			try {
-				Thread.sleep(10);
-			} catch (final InterruptedException e) {
-				log(e);
-				throw new RuntimeException(e);
-			}
+			$lock.wait();
 		}
 	}
 
@@ -195,7 +181,7 @@ public class GameZomisActor implements GameActor, Runnable {
 		outQueue.add(message);
 	}
 
-	private void processInQueue() {
+	@Synchronized private void processInQueue() {
 		while (true) {
 			final GameZomisMessage message = inQueue.poll();
 			if (message==null) break;
@@ -220,6 +206,7 @@ public class GameZomisActor implements GameActor, Runnable {
 				default:
 					Dout.a("Unexpected message: " + message);
 			}
+			$lock.notifyAll();
 		}
 	}
 
@@ -270,13 +257,16 @@ public class GameZomisActor implements GameActor, Runnable {
 		sendMove(outMove);
 	}
 
-	private void processGend(ImmutableList<String> args) {
-		done.set(true);
+	@Synchronized private void processGend(ImmutableList<String> args) {
+		done = true;
 	}
 
-	private void play(String move) {
+	@Synchronized private void play(String move) {
 		try {
 			ultimatoe = ultimatoe.play(move);
+			this.move = move;
+			Dout.a(move);
+			$lock.notifyAll();
 		} catch (final Exception e) {
 			Dout.a(e);
 			ultimatoe.play(move);
@@ -285,8 +275,9 @@ public class GameZomisActor implements GameActor, Runnable {
 	}
 
 	@Synchronized private void close() {
-		final boolean wasDone = done.get();
-		done.set(true);
+		Dout.a99();
+		final boolean wasDone = done;
+		done = true;
 		if (!wasDone) {
 			inQueue.add(GameZomisMessage.Type.IN_ABORT.newMessage());
 			outQueue.add(GameZomisMessage.Type.OUT_ABORT.newMessage());
@@ -308,21 +299,24 @@ public class GameZomisActor implements GameActor, Runnable {
 	private static final String HOST_NAME = "stats.zomis.net";
 	private static final int HOST_PORT = 7282;
 
+	private static final String ZONIS_IDIOT = "#AI_UTTT_Idiot";
+
 	@Getter private final GameAIParameters parameters = new GameAIParameters();
 
+	private final boolean isActive;
 	private final String actorName;
 	private final boolean isSecond;
-	private final AtomicBoolean done = new AtomicBoolean();
+
+	private volatile boolean done;
 
 	private final Socket socket;
 	private final Receiver receiver;
 	private final Sender sender;
-	private final ExecutorService executorService = Executors.newFixedThreadPool(2);
+	private final ExecutorService executorService = Executors.newFixedThreadPool(3);
 
 	private final BlockingQueue<GameZomisMessage> inQueue = Queues.newLinkedBlockingDeque();
 	private final BlockingQueue<GameZomisMessage> outQueue = Queues.newLinkedBlockingDeque();
 
-	private String userName;
 	private final String password = "password";
 	private String partnerName;
 	private String gameId;
@@ -331,6 +325,7 @@ public class GameZomisActor implements GameActor, Runnable {
 	private final Set<String> onlinePlayers = Sets.newHashSet();
 
 	private Ultimatoe ultimatoe = Ultimatoe.INITIAL_GAME;
+	private String move;
 	private final GameActor delegate = new GameMonteCarloActor();
 	private UltimatoeGui listener;
 }

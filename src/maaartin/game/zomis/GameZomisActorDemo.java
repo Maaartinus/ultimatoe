@@ -7,8 +7,8 @@ import de.grajcar.lang.Autokill;
 public class GameZomisActorDemo {
 	public static void main(String[] args) {
 		new Autokill(123456);
-		final GameZomisActor actor0 = new GameZomisActor(ACTOR_0, false);
-		final GameZomisActor actor1 = new GameZomisActor(ACTOR_1, true);
+		final GameZomisActorOld actor0 = new GameZomisActorOld(ACTOR_0, false);
+		final GameZomisActorOld actor1 = new GameZomisActorOld(ACTOR_1, true);
 		new Thread(actor0).start();
 		new Thread(actor1).start();
 		actor0.setListener(new UltimatoeGui());
@@ -27,6 +27,6 @@ public class GameZomisActorDemo {
 
 
 
-	static final String ACTOR_0 = "maaartinus-0";
-	static final String ACTOR_1 = "maaartinus-1";
+	public static final String ACTOR_0 = "maaartinus-0";
+	public static final String ACTOR_1 = "maaartinus-1";
 }

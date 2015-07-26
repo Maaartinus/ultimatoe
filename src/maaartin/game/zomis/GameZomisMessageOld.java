@@ -1,25 +1,19 @@
 package maaartin.game.zomis;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Verify.verify;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Arrays;
 import java.util.Map;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
-import de.grajcar.dout.Dout;
-
-public class GameZomisMessage {
+public class GameZomisMessageOld {
 	enum Type {
 		OUT_USER("xxx username password"),
 		IN_USER("x*"),
@@ -48,8 +42,8 @@ public class GameZomisMessage {
 			return checkNotNull(FOR_STRING.get(s), "Unexpected: " + s);
 		}
 
-		GameZomisMessage newMessage(String... args) {
-			return new GameZomisMessage(this, args);
+		GameZomisMessageOld newMessage(String... args) {
+			return new GameZomisMessageOld(this, args);
 		}
 
 		private boolean accept(ImmutableList<String> args) {
@@ -70,16 +64,16 @@ public class GameZomisMessage {
 		private final boolean allowsExtras;
 	}
 
-	private GameZomisMessage(Type type, String... args) {
+	private GameZomisMessageOld(Type type, String... args) {
 		this.type = type;
 		this.args = ImmutableList.copyOf(args);
 		checkArgument(type.accept(this.args), "Expected=[%s], got [%s]", type.argNames, this.args);
 	}
 
-	static GameZomisMessage forLine(String line) {
+	static GameZomisMessageOld forLine(String line) {
 		final String[] split = line.trim().split("\\s+");
 		final Type type = Type.forString(split[0]);
-		return new GameZomisMessage(type, Arrays.copyOfRange(split, 1, split.length));
+		return new GameZomisMessageOld(type, Arrays.copyOfRange(split, 1, split.length));
 	}
 
 	@Override public String toString() {
