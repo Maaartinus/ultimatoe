@@ -118,11 +118,6 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 	}
 
 	public UltimatoeGui() {
-		final JButton fasterButton = new JButton(new AbstractAction("faster") {
-			@Override public void actionPerformed(ActionEvent e) {
-				autoplayDelayMillis /= SPEEDUP_FACTOR;
-			}
-		});
 
 		final ActionListener autoListener = new ActionListener() {
 			/** Switch the AI for a player on or off. */
@@ -202,7 +197,16 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		}
 
 		this.game = game;
-		for (int i=0; i<humanActors.length; ++i) humanActors[i].isCurrent(i == game.playerOnTurn().ordinal());
+		int nHumanPlayers = 0;
+		for (int i=0; i<humanActors.length; ++i) {
+			humanActors[i].isCurrent(i == game.playerOnTurn().ordinal());
+			if (actors[i].isHuman()) ++nHumanPlayers;
+		}
+		if (nHumanPlayers != this.nHumanPlayers) {
+			this.nHumanPlayers = nHumanPlayers;
+			fasterButton.setEnabled(nHumanPlayers==0);
+			if (nHumanPlayers==0) autoplayDelayMillis = MAX_AUTOPLAY_DELAY_MILLIS;
+		}
 		frame.setTitle(title());
 	}
 
@@ -242,6 +246,11 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 			setState(game.play(move));
 		} catch (InterruptedException | ExecutionException e) {
 			e.printStackTrace(); //TODO
+			try {
+				Thread.sleep(100000);//TODO
+			} catch (final InterruptedException e1) {
+				throw new RuntimeException(e1);
+			}
 		} finally {
 			swingWorker = null;
 		}
@@ -265,6 +274,11 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 	private final JFrame frame = new JFrame();
 	private final JPanel controlPanel = new JPanel();
 	private final JPanel mainPanel = new JPanel();
+	final JButton fasterButton = new JButton(new AbstractAction("faster") {
+		@Override public void actionPerformed(ActionEvent e) {
+			autoplayDelayMillis /= SPEEDUP_FACTOR;
+		}
+	});
 
 	private final Timer timer = new Timer(10, new ActionListener() {
 		@Override public void actionPerformed(ActionEvent e) {
@@ -281,4 +295,5 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 
 	private final GameHumanActor[] humanActors = {new GameHumanActor(), new GameHumanActor()};
 	private final ActorChooser[] actors = {new ActorChooser(humanActors[0], false), new ActorChooser(humanActors[1], true)};
+	private int nHumanPlayers;
 }

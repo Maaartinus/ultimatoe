@@ -141,10 +141,10 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 	 * @param majorIndex the index of the board, must be between 0 and 8
 	 * @param minorIndex the index of field of the board, must be between 0 and 8
 	 */
-	private Ultimatoe play(int majorIndex, int minorIndex) {
+	@SuppressWarnings("boxing") private Ultimatoe play(int majorIndex, int minorIndex) {
 		final Tictactoe oldBoard = boards[majorIndex];
 		final Tictactoe newBoard = oldBoard.play(minorIndex, playerOnTurn());
-		checkNotNull(newBoard);
+		checkNotNull(newBoard, "Illegal move %s%s for \n%s", majorIndex, minorIndex, this);
 		final Tictactoe[] newBoards = boards.clone();
 		newBoards[majorIndex] = newBoard;
 

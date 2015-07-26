@@ -33,7 +33,8 @@ public class ActorChooser extends JPanel implements GameActor {
 				Dout.a(delegateActor);
 			}
 		});
-		model.setSelectedItem(!isSecond ? "HUMAN" : "MCTS");
+		//		model.setSelectedItem(!isSecond ? "MCTS" : "ZONIS");
+		model.setSelectedItem(!isSecond ? "HUMAN" : "ZONIS");
 	}
 
 	private GameActor toActor(String selection) {
@@ -44,6 +45,10 @@ public class ActorChooser extends JPanel implements GameActor {
 			case "ZONIS": return new GameZomisActor(false, "maaartinus-" + (isSecond ? 1 : 0), isSecond);
 		}
 		throw new IllegalArgumentException("Unknown:" + selection);
+	}
+
+	public boolean isHuman() {
+		return "HUMAN".equals(model.getSelectedItem());
 	}
 
 	private final GameActor initialActor;
