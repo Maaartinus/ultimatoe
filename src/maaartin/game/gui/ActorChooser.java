@@ -6,6 +6,7 @@ import java.awt.event.ActionListener;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 import lombok.experimental.Delegate;
 
@@ -25,16 +26,21 @@ public class ActorChooser extends JPanel implements GameActor {
 		model.addElement("HUMAN");
 		model.addElement("RANDOM");
 		model.addElement("MCTS");
-		model.addElement("ZONIS");
+		model.addElement("ZONIS_Idiot");
+		model.addElement("ZONIS_Imp3");
+		model.addElement("ZONIS_Latest");
+		model.addElement("ZONIS_V3");
 		comboBox.addActionListener(new ActionListener() {
 			@Override public void actionPerformed(ActionEvent e) {
 				final Object selectedItem = model.getSelectedItem();
-				delegateActor = toActor((String) selectedItem);
-				Dout.a(delegateActor);
+				SwingUtilities.invokeLater(new Runnable() {
+					@Override public void run() {
+						delegateActor = toActor((String) selectedItem);
+					}
+				});
 			}
 		});
-		//		model.setSelectedItem(!isSecond ? "MCTS" : "ZONIS");
-		model.setSelectedItem(!isSecond ? "HUMAN" : "ZONIS");
+		model.setSelectedItem(!isSecond ? "HUMAN" : "HUMAN");
 	}
 
 	private GameActor toActor(String selection) {
@@ -42,7 +48,10 @@ public class ActorChooser extends JPanel implements GameActor {
 			case "HUMAN": return initialActor;
 			case "RANDOM": return new GameRandomActor();
 			case "MCTS": return new GameMonteCarloActor();
-			case "ZONIS": return new GameZomisActor(false, "maaartinus-" + (isSecond ? 1 : 0), isSecond);
+		}
+		if (selection.startsWith(ZONIS_PREFIX)) {
+			final String partnerName = "#AI_UTTT_" + selection.substring(ZONIS_PREFIX.length());
+			return new GameZomisActor(false, partnerName, isSecond);
 		}
 		throw new IllegalArgumentException("Unknown:" + selection);
 	}
@@ -50,6 +59,8 @@ public class ActorChooser extends JPanel implements GameActor {
 	public boolean isHuman() {
 		return "HUMAN".equals(model.getSelectedItem());
 	}
+
+	private static final String ZONIS_PREFIX = "ZONIS_";
 
 	private final GameActor initialActor;
 	private final boolean isSecond;

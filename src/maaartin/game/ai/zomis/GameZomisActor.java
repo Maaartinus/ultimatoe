@@ -46,12 +46,11 @@ public class GameZomisActor implements GameActor {
 
 		private void step() throws IOException {
 			final String line = in.readLine();
-			Dout.a(actorName, "RECEIVE", line);
+			Dout.a("RECEIVE", line);
 			if (line==null) {
-				close();
+				inQueue.add(GameZomisMessage.Type.IN_ABORT.newMessage());
 			} else {
-				final GameZomisMessage message = GameZomisMessage.forLine(line);
-				inQueue.add(message);
+				inQueue.add(GameZomisMessage.forLine(line));
 			}
 			synchronized ($lock) {
 				$lock.notifyAll();
@@ -76,7 +75,7 @@ public class GameZomisActor implements GameActor {
 			final GameZomisMessage message = outQueue.take();
 			if (message.type() == GameZomisMessage.Type.OUT_ABORT) return;
 			final String line = message.toString();
-			Dout.a(actorName, "SEND", line);
+			Dout.a("SEND", line);
 			out.write(line);
 			out.write("\n");
 			out.flush();
@@ -93,30 +92,32 @@ public class GameZomisActor implements GameActor {
 				} else {
 					run1();
 				}
-				Dout.a(actorName, "DONE", playerIndex);
+				Dout.a("INITIALIZED", playerIndex);
 			} catch (final Exception e) {
 				log(e);
 				close();
 			}
 		}
 
-		private void run0() throws InterruptedException {
-			awaitPartner(ZONIS_IDIOT);
-			invite(ZONIS_IDIOT);
-			awaitGame();
-			sendMove("00");
+		private void run0() {
+			throw new RuntimeException("Not implemented");
 		}
 
 		private void run1() throws InterruptedException {
-			awaitPartner(ZONIS_IDIOT);
-			invite(ZONIS_IDIOT);
-			awaitGame();
+			if (actorName.endsWith(KILLER_SUFFIX)) {
+				final String name = actorName.substring(0, actorName.length() - KILLER_SUFFIX.length());
+				awaitPartner(name);
+				invite(name);
+				awaitGame();
+			} else {
+				throw new RuntimeException("Not implemented");
+			}
 		}
 	}
 
-	public GameZomisActor(boolean isActive, String actorName, boolean isSecond) {
+	public GameZomisActor(boolean isActive, String name, boolean isSecond) {
 		this.isActive = isActive;
-		this.actorName = actorName;
+		this.actorName = name + KILLER_SUFFIX;
 		this.isSecond = isSecond;
 		try {
 			socket = new Socket(HOST_NAME, HOST_PORT);
@@ -135,15 +136,17 @@ public class GameZomisActor implements GameActor {
 	@Override @Synchronized public String selectMove(Game<?> game) {
 		if (!game.equals(this.game)) {
 			final String move = this.game.children().get(game);
-			checkNotNull(move);
+			checkNotNull(move, "\n%s\n -> \n%s\n", this.game, game);
 			sendMove(move);
+			//			Dout.a("\n\nOLD\n" + this.game + "\nNEW\n" + game + "\nMOVE=" + move + "\n\n");
+			checkArgument(this.game.play(move).equals(game));
 		}
 		while (!done) {
 			final String result = move;
 			if (result != null) {
 				move = null;
 				if (this.game.playerOnTurn().ordinal() != playerIndex) {
-					Dout.a("SKIP", game.playerOnTurn().ordinal(), playerIndex, result, "\n" + game);
+					//					Dout.a("SKIP", game.playerOnTurn().ordinal(), playerIndex, result, "\n" + game);
 					continue;
 				}
 				return result;
@@ -219,6 +222,7 @@ public class GameZomisActor implements GameActor {
 			}
 			wait = false;
 			$lock.notifyAll();
+			break;
 		}
 	}
 
@@ -257,16 +261,16 @@ public class GameZomisActor implements GameActor {
 
 	private void processMove(ImmutableList<String> args) {
 		if (!gameId.equals(args.get(0))) return;
-		Dout.a(actorName, isSecond, playerIndex, game.playerOnTurn(), game.playerOnTurn().ordinal());
+		//		Dout.a(actorName, isSecond, playerIndex, game.playerOnTurn(), game.playerOnTurn().ordinal());
 		final String inMove = args.get(1) + args.get(2);
 		play(inMove);
 		if (game.isFinished()) {
 			close();
 			return;
 		}
-		if (playerIndex != game.playerOnTurn().ordinal()) return;
-		final String outMove = delegate.selectMove(game);
-		sendMove(outMove);
+		//		if (playerIndex != game.playerOnTurn().ordinal()) return;
+		//		final String outMove = delegate.selectMove(game);
+		//		sendMove(outMove);
 	}
 
 	@Synchronized private void processGend(ImmutableList<String> args) {
@@ -277,7 +281,7 @@ public class GameZomisActor implements GameActor {
 		try {
 			game = game.play(move);
 			this.move = move;
-			Dout.a("PLAY", game.playerOnTurn(), move, "\n" + game);
+			//			Dout.a("PLAY", game.playerOnTurn(), move, "\n" + game);
 			$lock.notifyAll();
 		} catch (final Exception e) {
 			Dout.a(e);
@@ -310,7 +314,7 @@ public class GameZomisActor implements GameActor {
 	private static final String HOST_NAME = "stats.zomis.net";
 	private static final int HOST_PORT = 7282;
 
-	private static final String ZONIS_IDIOT = "#AI_UTTT_Idiot";
+	private static final String KILLER_SUFFIX = "-KILLER";
 
 	@Getter private final GameAIParameters parameters = new GameAIParameters();
 
@@ -337,6 +341,6 @@ public class GameZomisActor implements GameActor {
 
 	private Ultimatoe game = Ultimatoe.INITIAL_GAME;
 	private String move;
-	private final GameActor delegate = new GameMonteCarloActor();
+	//	private final GameActor delegate = new GameMonteCarloActor();
 	private UltimatoeGui listener;
 }

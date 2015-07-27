@@ -30,6 +30,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.Synchronized;
 
+import de.grajcar.dout.Dout;
+import de.grajcar.lang.Autokill;
+
 import maaartin.game.Game;
 import maaartin.game.GameAIParameters;
 import maaartin.game.GameActor;
@@ -62,6 +65,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 			final int x = guiX - guiX/4;
 			final int y = guiY - guiY/4;
 			move = UltimatoeUtils.coordinatesToMoveString(x, y);
+			Dout.a("MOVE", move, "x=" + x, "y=" + y);
 			$lock.notifyAll();
 		}
 
@@ -118,26 +122,6 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 	}
 
 	public UltimatoeGui() {
-
-		final ActionListener autoListener = new ActionListener() {
-			/** Switch the AI for a player on or off. */
-			@Override public void actionPerformed(ActionEvent e) {
-				final JToggleButton b = (JToggleButton) e.getSource();
-				//				final boolean isOn = b.getModel().isSelected();
-				//				final boolean isO = b.getText().endsWith("O");
-				//				if (isO) {
-				////					actors[1] = isOn ? new GameRandomActor() : null;
-				//				} else {
-				////					actors[0] = isOn ? new GameMonteCarloActor() : null;
-				//				}
-
-				final boolean isFullAuto = actors[0]!=null && actors[1]!=null;
-				fasterButton.setEnabled(isFullAuto);
-				autoplayDelayMillis = MAX_AUTOPLAY_DELAY_MILLIS;
-				autoplay();
-			}
-		};
-
 		controlPanel.add(new JLabel("Player X: "));
 		controlPanel.add(actors[0]);
 		controlPanel.add(new JLabel("Player O: "));
@@ -247,6 +231,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		} catch (InterruptedException | ExecutionException e) {
 			e.printStackTrace(); //TODO
 			try {
+				new Autokill(60_000); //TODO
 				Thread.sleep(100000);//TODO
 			} catch (final InterruptedException e1) {
 				throw new RuntimeException(e1);
