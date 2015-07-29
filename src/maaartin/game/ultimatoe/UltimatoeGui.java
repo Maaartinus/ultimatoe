@@ -29,6 +29,9 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.Synchronized;
+import lombok.experimental.Accessors;
+
+import maaartin.game.StandardPlayer;
 
 import de.grajcar.dout.Dout;
 import de.grajcar.lang.Autokill;
@@ -58,14 +61,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		@Override @Synchronized public void actionPerformed(ActionEvent e) {
 			if (!isCurrent) return;
 			final FieldButton source = (FieldButton) e.getSource();
-			final int guiIndex = source.guiIndex;
-			final int guiX = guiIndex % N_OF_GUI_FIELDS;
-			final int guiY = guiIndex / N_OF_GUI_FIELDS;
-			// Convert the gui coordinates to game coordinates in range 0..8.
-			final int x = guiX - guiX/4;
-			final int y = guiY - guiY/4;
-			move = UltimatoeUtils.coordinatesToMoveString(x, y);
-			Dout.a("MOVE", move, "x=" + x, "y=" + y);
+			move = UltimatoeUtils.coordinatesToMoveString(source.x(), source.y());
 			$lock.notifyAll();
 		}
 
@@ -85,24 +81,31 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 			final int w = getWidth();
 			final int h = getHeight();
-			g.setColor(EMPTY_COLOR);
+			g.setColor(winnerColor());
 			g.fillRect(0, 0, w, h);
-			g.setStroke(new BasicStroke(isRecent ? 3 : 2));
-			switch (getText().charAt(0)) {
-				case 'O':
+			if (winner==null) return;
+			g.setStroke(new BasicStroke(isRecent ? 4 : 2));
+			switch (player) {
+				case PLAYER_O:
 					g.setColor(O_COLOR);
 					g.drawOval(3, 3, w-7, h-7);
 					break;
-				case 'X':
+				case PLAYER_X:
 					g.setColor(X_COLOR);
 					g.drawLine(3, 3, w-3, w-3);
 					g.drawLine(3, h-3, w-3, 3);
 					break;
-				case UltimatoeUtils.BORDER:
-					g.setColor(BORDER_COLOR);
-					g.fillRect(0, 0, getWidth(), getHeight());
-					break;
 			}
+		}
+
+		private final Color winnerColor() {
+			if (winner==null) return BORDER_COLOR;
+			switch (winner) {
+				case NOBODY: return EMPTY_COLOR;
+				case PLAYER_X: return EMPTY_X_COLOR;
+				case PLAYER_O: return EMPTY_O_COLOR;
+			}
+			throw new RuntimeException("impossible");
 		}
 
 		void setIsRecent(boolean isRecent) {
@@ -114,11 +117,16 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		private static final Color X_COLOR = new Color(200, 0, 0);
 		private static final Color O_COLOR = new Color(0, 200, 0);
 		private static final Color EMPTY_COLOR = new Color(200, 200, 220);
+		private static final Color EMPTY_X_COLOR = new Color(220, 200, 200);
+		private static final Color EMPTY_O_COLOR = new Color(200, 220, 200);
 		private static final Color BORDER_COLOR = new Color(200, 200, 200);
 
-		@Getter private final int guiIndex;
+		@Getter private final int x;
+		@Getter private final int y;
 
 		private boolean isRecent;
+		@Accessors(fluent=false) @Setter private StandardPlayer player;
+		@Accessors(fluent=false) @Setter private StandardPlayer winner;
 	}
 
 	public UltimatoeGui() {
@@ -131,12 +139,16 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		controlPanel.add(fasterButton);
 
 		mainPanel.setLayout(new GridLayout(N_OF_GUI_FIELDS, N_OF_GUI_FIELDS));
-		for (int i=0; i<N_OF_GUI_FIELDS*N_OF_GUI_FIELDS; ++i) {
-			final FieldButton button = new FieldButton(i);
-			button.setPreferredSize(BUTTON_SIZE);
-			button.addActionListener(humanActors[0]);
-			button.addActionListener(humanActors[1]);
-			mainPanel.add(button);
+		for (int guiY=0; guiY<N_OF_GUI_FIELDS; ++guiY) {
+			for (int guiX=0; guiX<N_OF_GUI_FIELDS; ++guiX) {
+				final int x = guiX%4 == 3 ? -1 : guiX - guiX/4;
+				final int y = guiY%4 == 3 ? -1 : guiY - guiY/4;
+				final FieldButton button = new FieldButton(x, y);
+				button.setPreferredSize(BUTTON_SIZE);
+				button.addActionListener(humanActors[0]);
+				button.addActionListener(humanActors[1]);
+				mainPanel.add(button);
+			}
 		}
 
 		frame.add(controlPanel, BorderLayout.NORTH);
@@ -166,20 +178,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 	}
 
 	private void setStateInternal(Ultimatoe game) {
-		final String newString = game.asString().replace("\n", "");
-		final String oldString = this.game==null ? null : this.game.asString().replace("\n", "");
-		for (final Component component : mainPanel.getComponents()) {
-			if (!(component instanceof FieldButton)) continue;
-			final FieldButton b = (FieldButton) component;
-			final int i = b.guiIndex();
-			final char c = newString.charAt(i);
-			final char c0 = oldString==null ? c : oldString.charAt(i);
-			final boolean isRecent = c!=c0 && (c==UltimatoeUtils.PLAYER_0 || c==UltimatoeUtils.PLAYER_1);
-			b.setIsRecent(isRecent);
-			b.setText("" + c);
-			b.setEnabled(c == UltimatoeUtils.PLAYABLE);
-		}
-
+		updateFields(game);
 		this.game = game;
 		int nHumanPlayers = 0;
 		for (int i=0; i<humanActors.length; ++i) {
@@ -192,6 +191,32 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 			if (nHumanPlayers==0) autoplayDelayMillis = MAX_AUTOPLAY_DELAY_MILLIS;
 		}
 		frame.setTitle(title());
+	}
+
+	private void updateFields(Ultimatoe game) {
+		//		Dout.a("\n" + game);
+		for (final Component component : mainPanel.getComponents()) {
+			if (!(component instanceof FieldButton)) continue;
+			final FieldButton b = (FieldButton) component;
+			if (b.x()<0 || b.y()<0) {
+				b.setText("" + UltimatoeUtils.BORDER);
+				b.setEnabled(false);
+				continue;
+			}
+			final String coordinatesString = UltimatoeUtils.coordinatesToMoveString(b.x(), b.y());
+			final int majorIndex = UltimatoeUtils.stringToMajorIndex(coordinatesString);
+			final int minorIndex = UltimatoeUtils.stringToMinorIndex(coordinatesString);
+			final Tictactoe tictactoe = game.tictactoe(majorIndex);
+			final StandardPlayer playerOnField = tictactoe.getPlayerOnField(minorIndex);
+			final char c = playerOnField.toChar();
+			final char c0 = this.game==null ? c : this.game.tictactoe(majorIndex).getPlayerOnField(minorIndex).toChar();
+			final boolean isRecent = c!=c0 && (c==UltimatoeUtils.PLAYER_0 || c==UltimatoeUtils.PLAYER_1);
+			b.setIsRecent(isRecent);
+			b.setWinner(tictactoe.winner());
+			b.setPlayer(playerOnField);
+			b.setEnabled(game.isPlayable(majorIndex) && tictactoe.isPlayable(minorIndex));
+			b.repaint();
+		}
 	}
 
 	private String title() {

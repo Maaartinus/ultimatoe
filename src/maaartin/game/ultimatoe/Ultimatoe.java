@@ -183,8 +183,12 @@ public final class Ultimatoe implements Game<Ultimatoe> {
 		return StandardPlayer.PLAYERS.get(turn & 1);
 	}
 
+	Tictactoe tictactoe(int index) {
+		return boards[index];
+	}
+
 	/** Return true if the player on turn can play on the board given by the argument. */
-	private boolean isPlayable(int majorIndex) {
+	boolean isPlayable(int majorIndex) {
 		return ((possibilities>>majorIndex) & 1) != 0;
 	}
 
