@@ -11,6 +11,7 @@ import java.awt.GridLayout;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nullable;
@@ -30,6 +31,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.Synchronized;
 import lombok.experimental.Accessors;
+
+import com.google.common.collect.Lists;
 
 import maaartin.game.StandardPlayer;
 
@@ -95,6 +98,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 					g.drawLine(3, 3, w-3, w-3);
 					g.drawLine(3, h-3, w-3, 3);
 					break;
+				case NOBODY:
 			}
 		}
 
@@ -138,6 +142,9 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		fasterButton.setEnabled(false);
 		controlPanel.add(fasterButton);
 
+		undoButton.setEnabled(false);
+		controlPanel.add(undoButton);
+
 		mainPanel.setLayout(new GridLayout(N_OF_GUI_FIELDS, N_OF_GUI_FIELDS));
 		for (int guiY=0; guiY<N_OF_GUI_FIELDS; ++guiY) {
 			for (int guiX=0; guiX<N_OF_GUI_FIELDS; ++guiX) {
@@ -160,10 +167,13 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 		frame.setVisible(true);
 		timer.start();
 
+		Dout.a();
 		setState(INITIAL_GAME);
+		Dout.a();
 	}
 
 	public static void main(String[] args) {
+		Dout.a();
 		new UltimatoeGui();
 	}
 
@@ -180,6 +190,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 	private void setStateInternal(Ultimatoe game) {
 		updateFields(game);
 		this.game = game;
+		history.add(game);
 		int nHumanPlayers = 0;
 		for (int i=0; i<humanActors.length; ++i) {
 			humanActors[i].isCurrent(i == game.playerOnTurn().ordinal());
@@ -190,6 +201,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 			fasterButton.setEnabled(nHumanPlayers==0);
 			if (nHumanPlayers==0) autoplayDelayMillis = MAX_AUTOPLAY_DELAY_MILLIS;
 		}
+		undoButton.setEnabled(history.size() > 2);
 		frame.setTitle(title());
 	}
 
@@ -284,9 +296,16 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 	private final JFrame frame = new JFrame();
 	private final JPanel controlPanel = new JPanel();
 	private final JPanel mainPanel = new JPanel();
-	final JButton fasterButton = new JButton(new AbstractAction("faster") {
+	private final JButton fasterButton = new JButton(new AbstractAction("faster") {
 		@Override public void actionPerformed(ActionEvent e) {
 			autoplayDelayMillis /= SPEEDUP_FACTOR;
+		}
+	});
+	private final JButton undoButton = new JButton(new AbstractAction("UNDO") {
+		@Override public void actionPerformed(ActionEvent e) {
+			final int historySize = history.size();
+			setState(history.get(historySize-3));
+			while (history.size() > historySize-2) history.remove(history.size() - 1);
 		}
 	});
 
@@ -306,4 +325,6 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 	private final GameHumanActor[] humanActors = {new GameHumanActor(), new GameHumanActor()};
 	private final ActorChooser[] actors = {new ActorChooser(humanActors[0], false), new ActorChooser(humanActors[1], true)};
 	private int nHumanPlayers;
+
+	private final List<Ultimatoe> history = Lists.newArrayList();
 }

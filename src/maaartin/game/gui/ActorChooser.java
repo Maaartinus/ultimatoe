@@ -15,8 +15,6 @@ import maaartin.game.ai.GameMonteCarloActor;
 import maaartin.game.ai.GameRandomActor;
 import maaartin.game.ai.zomis.GameZomisActor;
 
-import de.grajcar.dout.Dout;
-
 public class ActorChooser extends JPanel implements GameActor {
 	public ActorChooser(GameActor initialActor, boolean isSecond) {
 		this.initialActor = initialActor;
@@ -40,7 +38,7 @@ public class ActorChooser extends JPanel implements GameActor {
 				});
 			}
 		});
-		model.setSelectedItem(!isSecond ? "HUMAN" : "HUMAN");
+		model.setSelectedItem(!isSecond ? "HUMAN" : "MCTS");
 	}
 
 	private GameActor toActor(String selection) {
