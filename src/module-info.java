@@ -9,4 +9,5 @@ module ultimatoe {
 	requires com.google.common;
 	requires jsr305;
 	requires org.mapstruct.processor;
+	requires fmt;
 }

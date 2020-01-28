@@ -37,7 +37,6 @@ import com.google.common.collect.Lists;
 import maaartin.game.StandardPlayer;
 
 import de.grajcar.dout.Dout;
-import de.grajcar.lang.Autokill;
 
 import maaartin.game.Game;
 import maaartin.game.GameAIParameters;
@@ -267,13 +266,7 @@ public final class UltimatoeGui implements GameListener<Ultimatoe> {
 			setState(game.play(move));
 		} catch (InterruptedException | ExecutionException e) {
 			e.printStackTrace(); //TODO
-			try {
-				new Autokill(60_000); //TODO
-				Thread.sleep(100000);//TODO
-			} catch (final InterruptedException e1) {
-				throw new RuntimeException(e1);
-			}
-		} finally {
+					} finally {
 			swingWorker = null;
 		}
 	}
